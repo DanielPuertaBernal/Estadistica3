@@ -62,11 +62,11 @@ Criterio simétrica vs. asimétrica: `|skew| < 0,5` simétrica; `≥ 0,5` asimé
 
 | Regla | Condición esperada | Acción si se viola |
 |---|---|---|
-| Edad plausible | `10 ≤ Age ≤ 100` | _(a decidir)_ |
-| Horas semanales posibles | `1 ≤ WorkWeekHrs ≤ 168` | _(a decidir)_ |
-| Salario en rango humano | `CompTotal < 10⁹` | _(a decidir)_ |
-| No se programa antes de nacer | `Age1stCode ≤ Age` | _(a decidir)_ |
-| La experiencia profesional cabe en la total | `YearsCodePro ≤ YearsCode` | _(a decidir)_ |
+| Edad plausible | `10 ≤ Age ≤ 100` | Si el valor es corregible (error de dígito evidente), corregir; si no, tratar como faltante e imputar según 1.3. No se elimina la fila. | _(a decidir)_ |
+| Horas semanales posibles | `1 ≤ WorkWeekHrs ≤ 168` | 168 es el máximo físico de una semana, así que todo valor fuera de rango se trata como faltante e imputa; no se corrige inventando un valor. | _(a decidir)_ |
+| Salario en rango humano | `CompTotal < 10⁹` | Cruzar con `CompFreq` y moneda antes de actuar: si el valor reconstruye un error de unidad (ej. anual puesto en el campo mensual), corregir; si no, tratar como faltante. |  _(a decidir)_ |
+| No se programa antes de nacer | `Age1stCode ≤ Age` |  Tolerancia de 1 año por redondeo de encuesta. Fuera de eso, si invertir los dos valores resuelve la inconsistencia, corregir; si no, tratar ambos como faltantes. |  _(a decidir)_ |
+| La experiencia profesional cabe en la total | `YearsCodePro ≤ YearsCode` |  Misma tolerancia de 1 año. Fuera de eso, si no es reconstruible, tratar `YearsCodePro` como faltante e imputar, dejando `YearsCode` intacto. | _(a decidir)_ |
 
 ## 1.7 Detección de atípicos
 
