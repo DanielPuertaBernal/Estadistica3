@@ -216,3 +216,18 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Estadística III — proyecto
+# Credenciales de Kaggle: nunca versionar
+kaggle.json
+.kaggle/
+
+# El dataset original y el dataset limpio SÍ se versionan (requisito de entrega):
+# no agregar data/ a este archivo.
+
+# Dataset extraído: el CSV pesa ~94 MB (GitHub rechaza archivos >100 MB).
+# El original se versiona comprimido en data/archive.zip.
+archive/
+
+# Registro de skills del asistente (local, no forma parte de la entrega)
+.atl/
