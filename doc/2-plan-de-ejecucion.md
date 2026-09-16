@@ -12,10 +12,11 @@ que queda.
 
 ## Lectura obligatoria antes de seguir
 
-**El protocolo que se entregó NO es el archivo `doc/1-protocolo-previo-de-limpieza.md`
-de este repositorio.** Ese archivo es un borrador largo, de nueve secciones, que nunca se
-firmó ni se entregó. Lo que el profesor tiene en la mano es un documento mucho más corto,
-con cuatro reglas y la declaración de uso de IA.
+**El protocolo entregado son cuatro reglas, no nueve secciones.** Durante un tiempo el
+repositorio guardó un borrador largo que nunca se firmó ni se entregó, y el trabajo
+pendiente se midió contra él por error. Ese borrador ya se descartó:
+`doc/1-protocolo-previo-de-limpieza.md` es hoy la transcripción literal de lo que el
+docente tiene en la mano.
 
 Esa diferencia cambia todo el trabajo pendiente, así que va primero.
 
@@ -43,13 +44,11 @@ Esto importa igual, porque define qué es una desviación y qué no:
 Todo lo que el script hace en esos puntos es **decisión libre del equipo**, no una promesa
 rota. Se defiende por sus méritos; no se reporta como desviación.
 
-> **Ojo con el borrador del repositorio.** `doc/1-protocolo-previo-de-limpieza.md` tiene
-> reglas que suenan comprometidas pero nunca se entregaron: umbral de filas al 80%,
-> tolerancia de 1 año en coherencia, prohibición de "corregir inventando un valor", orden
-> de aplicación, rutas de entrada y salida. **Ninguna de esas ata al equipo.** Decidan si
-> ese archivo se queda como borrador histórico, se renombra para que nadie lo confunda con
-> el entregado, o se borra. Si llega a la sustentación como si fuera el protocolo, van a
-> terminar defendiendo reglas que nunca prometieron cumplir.
+> **Reglas que NO los atan.** El borrador descartado prometía cosas que nunca se
+> entregaron: umbral de filas al 80%, tolerancia de 1 año en coherencia, prohibición de
+> "corregir inventando un valor", orden de aplicación, rutas de entrada y salida.
+> **Ninguna de esas ata al equipo.** Si alguien las menciona en la sustentación, no salen
+> del protocolo entregado.
 
 ---
 
@@ -131,7 +130,8 @@ Ya no son "desviaciones del protocolo". Son tres cosas distintas, y conviene no 
 | E2 | **B** | El factor del rango intercuartílico es **1,5**, y el protocolo entregado solo dice "rango intercuartílico", sin número. Es el valor estándar, pero nadie se comprometió a él: saber por qué 1,5 y no 3 — **P15** |
 | E3 | **B** | El protocolo entregado no promete ninguna tabla de acciones para atípicos; el script clasifica en cinco categorías igual. Eso es **más** de lo prometido, y está bien — pero solo si los tres pueden explicar los cinco casos — **P16** |
 | E4 | **C** | Numeración interna inconsistente: los comentarios del script hablan de "sección 7" y "sección 8" con números que no coinciden con los encabezados reales. Cosmético, pero confunde en la sustentación |
-| E5 | **A** | Decidir qué pasa con `doc/1-protocolo-previo-de-limpieza.md`: borrador histórico, renombrado o borrado. Hoy cualquiera que lo abra va a creer que es el protocolo entregado |
+| E5 | ✅ | ~~El repositorio guardaba un borrador que nadie entregó, con nombre de protocolo.~~ **Resuelto.** `doc/1-protocolo-previo-de-limpieza.md` es ahora la transcripción literal del documento entregado |
+| E6 | **C** | Dos erratas en el protocolo entregado: dice `Respondentm` en vez de `Respondent`, y "sí coinciden" en vez de "si coinciden". Están transcritas tal cual porque el archivo es el registro de lo entregado. Decidir si se corrigen en el informe final o se dejan |
 
 ---
 

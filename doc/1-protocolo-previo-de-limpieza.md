@@ -1,121 +1,58 @@
 # 1. Protocolo previo de limpieza
 
-**Dataset:** Stack Overflow Developer Survey — `palvinder2006/stackoverflow`
-**Equipo:** _(nombres)_
-
-> Este documento se congela ANTES de ver el resultado de aplicar las reglas.
-> Una vez firmado no puede modificarse. Las desviaciones se reportan al final del
-> trabajo, punto por punto, con la evidencia que las motivó.
-
-> **Borrador.** Las decisiones y justificaciones de abajo son una propuesta para
-> discutir y reescribir con palabras del equipo. No son el texto final.
+> Transcripción literal del documento entregado al docente. No se modifica.
+> El borrador largo de nueve secciones que vivía antes en este archivo nunca se
+> entregó y fue descartado.
 
 ---
 
-## 1.1 Eliminación de columnas por faltantes
+## 1. Cuando eliminamos una columna
 
-| Campo | Decisión |
-|---|---|
-| Umbral | Se elimina toda columna con más del 50% de faltantes |
-| Justificación | En una encuesta, un campo vacío casi siempre significa que la pregunta no le correspondía a esa persona, no que el dato se haya perdido. Un umbral más exigente castigaría a las preguntas sobre remuneración, que son opcionales por naturaleza y a la vez centrales para el estudio. |
-| Excepciones | Ninguna. Con este umbral no se elimina ninguna columna, y eso se reporta como resultado del protocolo, no como un paso omitido. |
+Vamos a descartar cualquier columna a la que le falte más de la mitad de los datos. Es un
+umbral alto y lo elegimos a propósito: en una encuesta, una celda vacía rara vez quiere
+decir que el dato se perdió, sino que esa pregunta no le tocaba a esa persona. Si fuéramos
+más estrictos, las primeras en caer serían las preguntas sobre sueldo, que son opcionales
+por diseño y a la vez el centro de lo que queremos estudiar. Preferimos conservarlas y ser
+cuidadosos al usarlas.
 
-## 1.2 Eliminación de filas
+## 2. Cómo completamos los datos que faltan
 
-| Campo | Decisión |
-|---|---|
-| ¿Se eliminan filas con algún faltante? | No |
-| Umbral por fila | Se descarta la fila con más del 80% de campos vacíos |
-| Columnas obligatorias | `Respondent`, `MainBranch`, `Country`, `Employment` |
-| Justificación | Casi nadie respondió absolutamente todas las preguntas, así que exigir el registro completo dejaría el estudio sin datos. Hay una diferencia real entre quien eligió no responder algo y quien abandonó la encuesta a mitad de camino: lo primero es información, lo segundo es ruido. Las columnas obligatorias son las que respondió prácticamente todo el mundo, así que exigirlas apenas cuesta registros. |
-
-## 1.3 Criterio de imputación por tipo de variable
-
-| Tipo de variable | Estrategia | Justificación |
+| Tipo de variable | Qué hacemos | Por qué |
 |---|---|---|
-| Numérica simétrica | Media | Ninguna variable numérica de este dataset resultó simétrica, así que la regla se declara pero se reportará que no llegó a aplicarse. |
-| Numérica asimétrica | Mediana | Cuando la distribución tiene una cola larga, la media se corre hacia los valores extremos y deja de representar al encuestado típico. |
-| Categórica | Categoría explícita `"Desconocido"` | Imputar con la moda inventa una respuesta y engorda artificialmente la categoría más común. Marcarla como desconocida conserva el hecho de que faltaba. |
-| Faltante estructural | No se imputa; se marca `"No aplica"` | Si la pregunta nunca se le hizo al encuestado, cualquier valor que pongamos es ficción. |
+| Numérica simétrica | Rellenar con el promedio | Cuando los datos se reparten de forma pareja, el promedio representa bien al encuestado típico. |
+| Numérica asimétrica | Rellenar con la mediana | Si la distribución tiene una cola larga, el promedio se va detrás de los valores extremos y deja de parecerse a nadie. |
+| Categórica | Crear una categoría "Desconocido" | Poner la respuesta más frecuente es inventar lo que esa persona contestó, y además infla una categoría que ya era grande. Dejarla marcada conserva el dato de que no sabemos. |
 
-Criterio simétrica vs. asimétrica: `|skew| < 0,5` simétrica; `≥ 0,5` asimétrica.
+## 3. Cómo detectamos valores atípicos
 
-## 1.4 Corrección de tipos de datos
+Usamos el rango intercuartílico y no el criterio de las k desviaciones estándar. El
+problema del segundo es que se muerde la cola: en variables como la remuneración, el
+promedio y la desviación ya vienen corridos por los mismos valores extremos que queremos
+detectar, así que los atípicos terminan definiendo el umbral que debería atraparlos. Si los
+montos son lo bastante grandes, la desviación ni siquiera llega a calcularse. El rango
+intercuartílico se apoya en la posición de los datos y no en su magnitud, así que un valor
+desmedido no lo mueve.
 
-| Campo | Decisión |
-|---|---|
-| Etiquetas no numéricas | Se mapean al valor límite antes de convertir: `"Less than 1 year"` → 0,5 · `"More than 50 years"` → 51 · `"Younger than 5 years"` → 4 · `"Older than 85"` → 86. Afecta a `YearsCode`, `YearsCodePro` y `Age1stCode`. |
-| Por qué conviene | Recupera para el análisis numérico tres variables de experiencia que hoy el software lee como texto. |
-| Riesgo asumido | El valor asignado en los extremos es una convención nuestra, no un dato del encuestado. Queda documentado. |
-| Fechas | No aplica: el dataset no contiene columnas de fecha. Se declara explícitamente para que no parezca un punto omitido. |
+## 4. Qué consideramos un duplicado
 
-## 1.5 Normalización de valores categóricos
+Dos filas son la misma respuesta sí coinciden en todas las columnas menos en Respondentm,
+ya que este es distinto en cada fila por definición. Si lo incluimos en la comparación nos
+aseguramos de no encontrar nunca un duplicado.
 
-| Campo | Decisión |
-|---|---|
-| Normalización de texto | `strip` y minúsculas, como medida defensiva. Se verificó que el dataset ya viene estandarizado, así que no esperamos cambios; se deja constancia igual. |
-| Verificación del riesgo | Comparar el número de categorías antes y después. Si baja, fusionamos categorías que en realidad eran distintas y hay que revisar. |
-| Respuesta múltiple | Varias columnas guardan más de una respuesta en la misma celda, separadas por punto y coma. No se modifican: se derivan columnas nuevas de conteo y binarias. Contar frecuencias sin separarlas daría resultados sin sentido. |
-| Categorías de baja frecuencia | Agrupar en `"Otros"` las categorías con menos del 1% de los registros en `Ethnicity` y `Country`, que arrastran una cola larga de valores con muy pocos casos. |
+## 5. Declaración de uso de la IA
 
-## 1.6 Reglas de coherencia
+Usamos Claude (Anthropic) como apoyo en la parte de código: para resolver dudas de
+sintaxis, depurar errores y revisar que la lógica de las reglas de este protocolo quedara
+bien implementada. La definición de las reglas, los umbrales y las justificaciones
+metodológicas fueron decisión nuestra, no de la IA.
 
-| Regla | Condición esperada | Acción si se viola |
-|---|---|---|
-| Edad plausible | `10 ≤ Age ≤ 100` | Si el valor es corregible (error de dígito evidente), corregir; si no, tratar como faltante e imputar según 1.3. No se elimina la fila. |
-| Horas semanales posibles | `1 ≤ WorkWeekHrs ≤ 168` | 168 es el máximo físico de una semana, así que todo valor fuera de rango se trata como faltante e imputa; no se corrige inventando un valor. |
-| Salario en rango humano | `CompTotal < 10⁹` | Cruzar con `CompFreq` y moneda antes de actuar: si el valor reconstruye un error de unidad (ej. anual puesto en el campo mensual), corregir; si no, tratar como faltante. |
-| No se programa antes de nacer | `Age1stCode ≤ Age` | Tolerancia de 1 año por redondeo de encuesta. Fuera de eso, si invertir los dos valores resuelve la inconsistencia, corregir; si no, tratar ambos como faltantes. |
-| La experiencia profesional cabe en la total | `YearsCodePro ≤ YearsCode` | Misma tolerancia de 1 año. Fuera de eso, si no es reconstruible, tratar `YearsCodePro` como faltante e imputar, dejando `YearsCode` intacto. |
-
-## 1.7 Detección de atípicos
-
-| Campo | Decisión |
-|---|---|
-| Método | Rango intercuartílico |
-| Parámetro | Factor 1,5 |
-| Justificación | El criterio de las k desviaciones estándar no se sostiene con estos datos: en la variable de remuneración total la desviación estándar ni siquiera puede calcularse, porque los valores extremos desbordan el cálculo. Y en distribuciones tan sesgadas, la media y la desviación ya vienen arrastradas por los mismos atípicos que queremos encontrar. El rango intercuartílico se apoya en cuantiles y no sufre ese problema. |
-| Alcance | Las variables numéricas del dataset y las tres recuperadas en 1.4 |
-
-**Regla de acción.** La acción sigue a la clasificación, no al revés.
-Eliminar es la última opción y exige justificación.
-
-| Clasificación | Acción comprometida |
-|---|---|
-| Error de digitación | Corregir si el valor correcto es deducible; si no, tratar como faltante e imputar según 1.3 |
-| Error de unidad o escala | Convertir a la unidad correcta y conservar |
-| Observación válida extrema | Conservar sin modificar |
-| Subpoblación distinta | Conservar y marcar con una variable indicadora para analizarla aparte |
-| Observación contaminante | Eliminar, documentando el criterio caso por caso |
-
-> Candidato para el caso obligatorio de "atípico que NO debe eliminarse": el método
-> marca buena parte de los salarios más altos de la muestra. Son sueldos reales del
-> sector, no errores.
-
-## 1.8 Duplicados
-
-| Campo | Decisión |
-|---|---|
-| Qué define un duplicado real | Coincidencia en todas las columnas excepto `Respondent` |
-| Justificación | `Respondent` es un número correlativo, distinto en cada fila. Incluirlo en la comparación garantiza que jamás se detecte un duplicado, que es justo lo que el parcial advierte al excluir los datos de tipo identificador. |
-| Duplicados exactos | Comparando el registro completo no aparece ninguno. La prueba se repite sin el identificador. |
-| Duplicados parciales | Conservar el registro más completo y, en caso de empate, el primero. |
-
-## 1.9 Reproducibilidad
-
-| Campo | Decisión |
-|---|---|
-| Semilla aleatoria | 42, fijada al inicio del script |
-| Archivo de entrada | `data/archive.zip` — no se modifica |
-| Archivo de salida | `data/stackoverflow_limpio.csv` |
-| Orden de aplicación | Tipos (1.4) → coherencia (1.6) → columnas (1.1) → filas (1.2) → duplicados (1.8) → atípicos (1.7) → imputación (1.3) → normalización (1.5). Imputar antes de tratar los atípicos contaminaría las medias y medianas con valores imposibles. |
+Para la redacción del informe usamos Gemini (Google) como apoyo de estilo, ortografía y
+claridad del texto, sin delegarle la argumentación ni las conclusiones.
 
 ---
 
-## Firma del equipo
+**Integrantes:**
 
-| Integrante | Firma | Fecha |
-|---|---|---|
-| | | |
-| | | |
-| | | |
+- Daniel Puerta Bernal
+- Tomás Marín Estrada
+- Juan Diego Guzman Chalarca
