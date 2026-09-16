@@ -31,17 +31,14 @@ np.random.seed(SEMILLA)
 # archivos.
 RAIZ = Path(__file__).resolve().parent
 
-# Entrada: el ZIP original, tal como lo fija el protocolo (seccion 1.9). El
-# CSV descomprimido pesa ~94 MB, asi que nunca se deja suelto en el
-# repositorio: pandas lee el miembro directamente desde el ZIP.
+# Entrada: el ZIP original tal como se descargo de Kaggle. El CSV
+# descomprimido pesa ~94 MB, asi que nunca se deja suelto en el repositorio:
+# pandas lee el miembro directamente desde el ZIP.
 ARCHIVO_ZIP = RAIZ / "data" / "archive.zip"
 CSV_DENTRO_DEL_ZIP = "survey_results_public.csv"
 
 # Salidas: TODO lo que produce el script vive en salidas/, fuera de data/.
-# DESVIACION del protocolo: la seccion 1.9 fija
-# "data/stackoverflow_limpio.csv" como archivo de salida. Se cambio porque el
-# profesor pidio que el dataset limpio quede en salidas/ y que data/ guarde
-# unicamente el original. Queda reportada en doc/2-plan-de-ejecucion.md.
+# Asi el original queda aislado y no se puede sobrescribir por accidente.
 CARPETA_SALIDAS = RAIZ / "salidas"
 ARCHIVO_LIMPIO = CARPETA_SALIDAS / "stackoverflow_limpio.csv"
 CARPETA_GRAFICAS = CARPETA_SALIDAS / "graficas"
