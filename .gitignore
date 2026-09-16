@@ -222,12 +222,18 @@ __marimo__/
 kaggle.json
 .kaggle/
 
-# El dataset original y el dataset limpio SÍ se versionan (requisito de entrega):
-# no agregar data/ a este archivo.
+# El dataset original y el dataset limpio SÍ se versionan (requisito de entrega),
+# pero SIEMPRE comprimidos: data/archive.zip y data/stackoverflow_limpio.zip.
 
-# Dataset extraído: el CSV pesa ~94 MB (GitHub rechaza archivos >100 MB).
-# El original se versiona comprimido en data/archive.zip.
+# Dataset original extraído: el CSV pesa ~94 MB (GitHub rechaza archivos >100 MB).
 archive/
+
+# Dataset limpio sin comprimir: 103 MB, al borde del límite duro de GitHub.
+# Lo regenera `python src/limpieza_stackoverflow.py` en un segundo paso.
+data/stackoverflow_limpio.csv
+
+# Tablas y gráficas auxiliares: el script las regenera en cada corrida.
+salidas/
 
 # Registro de skills del asistente (local, no forma parte de la entrega)
 .atl/
