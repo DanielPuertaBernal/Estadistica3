@@ -222,14 +222,11 @@ __marimo__/
 kaggle.json
 .kaggle/
 
-# El dataset original y el dataset limpio SÍ se versionan (requisito de entrega),
-# pero SIEMPRE comprimidos: data/archive.zip y data/stackoverflow_limpio.zip.
+# data/ contiene ÚNICAMENTE el dataset original sin comprimir, por indicación
+# del profesor. Ese CSV SÍ se versiona (requisito de entrega): no agregarlo aquí.
 
-# Dataset limpio sin comprimir: 103 MB, al borde del límite duro de GitHub.
-# Lo regenera `python src/limpieza_stackoverflow.py` en un segundo paso.
-data/stackoverflow_limpio.csv
-
-# Tablas y gráficas auxiliares: el script las regenera en cada corrida.
+# Todo lo que produce el script — dataset limpio, tablas y gráficas — vive en
+# salidas/ y se regenera en cada corrida, así que no se versiona.
 salidas/
 
 # Registro de skills del asistente (local, no forma parte de la entrega)

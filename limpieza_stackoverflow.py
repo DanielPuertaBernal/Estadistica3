@@ -2,7 +2,6 @@
 
 import random
 import warnings
-import zipfile
 from pathlib import Path
 
 import numpy as np
@@ -31,20 +30,22 @@ np.random.seed(SEMILLA)
 # archivos.
 RAIZ = Path(__file__).resolve().parent
 
-# Entrada: el ZIP original tal cual lo fija el protocolo (seccion 1.9). El CSV
-# descomprimido pesa ~94 MB y por eso no se versiona ni se deja suelto en el
-# repositorio; pandas lee el miembro directamente desde el ZIP.
-ARCHIVO_ZIP = RAIZ / "data" / "archive.zip"
-CSV_DENTRO_DEL_ZIP = "survey_results_public.csv"
+# Entrada: el CSV original sin comprimir, en data/.
+# DESVIACION del protocolo: la seccion 1.9 fija "data/archive.zip" como
+# archivo de entrada. Se cambio porque el profesor pidio que data/ contenga
+# unicamente el CSV original sin comprimir. Queda reportada en
+# doc/2-plan-de-ejecucion.md.
+ARCHIVO_ORIGINAL = RAIZ / "data" / "survey_results_public.csv"
 
-# Salidas: el dataset limpio va donde lo fija el protocolo (seccion 1.9); las
-# tablas y graficas auxiliares van aparte, en salidas/.
-ARCHIVO_LIMPIO = RAIZ / "data" / "stackoverflow_limpio.csv"
+# Salidas: TODO lo que produce el script vive en salidas/, fuera de data/.
+# DESVIACION del protocolo: la seccion 1.9 fija
+# "data/stackoverflow_limpio.csv" como archivo de salida. Se cambio por la
+# misma indicacion: data/ no puede contener el dataset limpio.
 CARPETA_SALIDAS = RAIZ / "salidas"
+ARCHIVO_LIMPIO = CARPETA_SALIDAS / "stackoverflow_limpio.csv"
 CARPETA_GRAFICAS = CARPETA_SALIDAS / "graficas"
 ARCHIVO_TABLA_SESGO = CARPETA_SALIDAS / "tabla_sesgo_imputacion.csv"
 
-ARCHIVO_LIMPIO.parent.mkdir(parents=True, exist_ok=True)
 CARPETA_GRAFICAS.mkdir(parents=True, exist_ok=True)
 
 
@@ -61,27 +62,19 @@ def linea(titulo):
 # ---------------------------------------------------------------------------
 linea("1. CARGA DEL DATASET")
 
-# El archivo original nunca se modifica ni se descomprime en disco: se abre el
-# ZIP en modo lectura y se lee el CSV como un flujo.
-if not ARCHIVO_ZIP.exists():
+# El archivo original se abre en modo lectura y no se modifica nunca: la
+# limpieza escribe un archivo nuevo, en otra carpeta.
+if not ARCHIVO_ORIGINAL.exists():
     raise FileNotFoundError(
-        f"No se encontro {ARCHIVO_ZIP}. El dataset original se versiona "
-        f"comprimido en data/archive.zip; ver el README para obtenerlo."
+        f"No se encontro {ARCHIVO_ORIGINAL}. Ver el README para obtener el "
+        f"dataset original."
     )
 
-with zipfile.ZipFile(ARCHIVO_ZIP) as zip_original:
-    miembros = zip_original.namelist()
-    if CSV_DENTRO_DEL_ZIP not in miembros:
-        raise FileNotFoundError(
-            f"El ZIP {ARCHIVO_ZIP.name} no contiene {CSV_DENTRO_DEL_ZIP}. "
-            f"Miembros encontrados: {miembros}"
-        )
-    with zip_original.open(CSV_DENTRO_DEL_ZIP) as flujo_csv:
-        df = pd.read_csv(flujo_csv, low_memory=False)
+df = pd.read_csv(ARCHIVO_ORIGINAL, low_memory=False)
 
-print(f"Dataset cargado desde: data/{ARCHIVO_ZIP.name} -> {CSV_DENTRO_DEL_ZIP}")
-print("El ZIP original se abre en solo lectura: no se modifica ni se "
-      "descomprime en disco.")
+print(f"Dataset cargado desde: {ARCHIVO_ORIGINAL.relative_to(RAIZ)}")
+print("El archivo original no se modifica: la limpieza escribe un archivo "
+      "nuevo en salidas/.")
 print(df.head())
 
 
@@ -570,7 +563,7 @@ print("Se creo 'grupo_edad' agrupando Age en rangos (<=20, 21-30, 31-40, 41-50, 
 linea("11. GUARDAR DATASET LIMPIO")
 
 df.to_csv(ARCHIVO_LIMPIO, index=False)
-print(f"Dataset original:  data/{ARCHIVO_ZIP.name} -> {CSV_DENTRO_DEL_ZIP}  "
+print(f"Dataset original:  {ARCHIVO_ORIGINAL.relative_to(RAIZ)}  "
       f"({n_filas} filas, {n_columnas} columnas) - sin modificar")
 print(f"Dataset limpio:    {ARCHIVO_LIMPIO.relative_to(RAIZ)}  "
       f"({len(df)} filas, {df.shape[1]} columnas)")
