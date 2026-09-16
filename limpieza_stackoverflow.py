@@ -25,11 +25,11 @@ np.random.seed(SEMILLA)
 # ---------------------------------------------------------------------------
 # Rutas de entrada / salida
 # ---------------------------------------------------------------------------
-# Todas las rutas se resuelven a partir de la raiz del repositorio (la carpeta
-# que contiene a src/), NO del directorio desde el que se ejecuta el script.
-# Asi da igual si se corre con "python src/limpieza_stackoverflow.py" desde la
-# raiz o parado dentro de src/: siempre encuentra los mismos archivos.
-RAIZ = Path(__file__).resolve().parent.parent
+# Todas las rutas se resuelven a partir de la carpeta donde vive este archivo
+# (la raiz del repositorio), NO del directorio desde el que se ejecuta el
+# script. Asi da igual desde donde se lance: siempre encuentra los mismos
+# archivos.
+RAIZ = Path(__file__).resolve().parent
 
 # Entrada: el ZIP original tal cual lo fija el protocolo (seccion 1.9). El CSV
 # descomprimido pesa ~94 MB y por eso no se versiona ni se deja suelto en el

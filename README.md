@@ -15,25 +15,32 @@ Cumple los mínimos del parcial (≥1000 registros y ≥20 variables combinadas)
 ## Estructura
 
 ```
-data/archive.zip              Dataset original comprimido — se versiona
-data/stackoverflow_limpio.zip Dataset limpio comprimido — se versiona
-archive/                      Original descomprimido — NO se versiona
+limpieza_stackoverflow.py     Código de limpieza
+data/                         Datasets — la única carpeta de datos
+  archive.zip                 Original de Kaggle, comprimido — se versiona
+  stackoverflow_limpio.zip    Resultado de la limpieza, comprimido — se versiona
 salidas/                      Tablas y gráficas del script — NO se versiona
-src/                          Código de limpieza
 doc/                          Enunciado del parcial y entregables
 ```
+
+**No hace falta descomprimir nada.** El script lee el CSV directamente desde
+`data/archive.zip`, así que el dataset original nunca necesita existir suelto en el
+disco.
 
 Ningún CSV grande se versiona sin comprimir. El original pesa ~94 MB y el limpio
 103 MB: ambos por encima del umbral recomendado de 50 MB de GitHub, y el limpio a
 1,6 MB del límite duro de 100 MB. Por eso los dos viven comprimidos en `data/` y sus
 versiones sueltas están en `.gitignore`.
 
+El nombre `archive.zip` viene de la descarga de Kaggle y lo congela la sección 1.9 del
+protocolo (`doc/1-protocolo-previo-de-limpieza.md`) como archivo de entrada. Por eso no
+se renombra: cambiarlo sería una desviación del protocolo que habría que reportar.
+
 ## Preparación del entorno
 
 ```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
-unzip data/archive.zip -d archive/
 ```
 
 ## Descarga desde Kaggle
@@ -59,7 +66,7 @@ El archivo original no se modifica: la limpieza produce un archivo nuevo.
 ## Limpieza
 
 ```bash
-.venv/bin/python src/limpieza_stackoverflow.py
+.venv/bin/python limpieza_stackoverflow.py
 ```
 
 El script lee `data/archive.zip` directamente (no hace falta descomprimirlo) y escribe:

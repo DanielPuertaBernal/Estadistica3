@@ -2,7 +2,7 @@
 
 **Equipo:** Daniel Puerta Bernal · Tomás Marín Estrada · Juan Diego Guzmán Chalarca
 
-El código ya está escrito: un único script, `src/limpieza_stackoverflow.py`, que cubre
+El código ya está escrito: un único script, `limpieza_stackoverflow.py`, que cubre
 de la carga al dataset limpio. El protocolo congelado está en
 `doc/1-protocolo-previo-de-limpieza.md`.
 
@@ -15,7 +15,8 @@ Este documento ya no reparte la escritura del código. Reparte la **revisión** 
 
 El plan original separaba el trabajo en módulos `src/`, un archivo por persona, para
 que nadie se bloqueara esperando a otro. Ese reparto ya no aplica: el código llegó
-completo y en un solo archivo.
+completo y en un solo archivo, y el profesor pidió que el script viva en la raíz del
+repositorio.
 
 Lo que sí sigue vigente es la razón de fondo del plan: **la sustenta una sola persona,
 elegida al azar, sin notas**. Así que cada integrante tiene que poder explicar línea
@@ -89,7 +90,7 @@ Cada pendiente está asignado a quien revisa la sección donde vive.
 |---|---|---|---|
 | E1 | **El orden del pipeline está invertido respecto al protocolo** | Protocolo 1.9 | El protocolo fija: tipos → coherencia → columnas → filas → duplicados → atípicos → imputación → normalización. El script hace: tipos → imputación → duplicados → normalización → atípicos → coherencia. El protocolo advierte explícitamente *"imputar antes de tratar los atípicos contaminaría las medias y medianas con valores imposibles"*. El propio código lo admite sin querer: §8 guarda `valores_antes_de_imputar` para poder calcular Q1 y Q3 sobre datos limpios. Ese parche existe **porque** el orden está mal. Es la decisión más grande que queda: reordenar el pipeline, o reportar la desviación explicando que el parche produce el mismo resultado |
 | E2 | Archivos pesados fuera del control de versiones | README | ✅ **Parcialmente resuelto.** Se borró la carpeta del compañero (CSV duplicado verificado por hash contra `archive/`, más salidas regenerables). El dataset limpio pesa 103.189.512 bytes, a 1,6 MB del límite duro de GitHub: se versiona comprimido en `data/stackoverflow_limpio.zip` (8,8 MB) y el CSV suelto quedó en `.gitignore`. **Pendiente:** al aplicar D3 (columnas derivadas de respuesta múltiple) el CSV crece; hay que reconfirmar que el ZIP sigue siendo la vía y volver a comprimir después de cada corrida |
-| E3 | ~~Ubicación del script en el repositorio~~ | — | ✅ **Resuelto.** Quedó en `src/limpieza_stackoverflow.py` |
+| E3 | ~~Ubicación del script en el repositorio~~ | — | ✅ **Resuelto.** Quedó en la raíz del repositorio, `limpieza_stackoverflow.py`, por indicación del profesor |
 | E4 | Numeración interna inconsistente | — | Los comentarios del script se refieren a "sección 7" y "sección 8" con números que no coinciden con los encabezados reales. Cosmético, pero confunde en la sustentación |
 
 ---

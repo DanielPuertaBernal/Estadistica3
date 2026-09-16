@@ -225,9 +225,6 @@ kaggle.json
 # El dataset original y el dataset limpio SÍ se versionan (requisito de entrega),
 # pero SIEMPRE comprimidos: data/archive.zip y data/stackoverflow_limpio.zip.
 
-# Dataset original extraído: el CSV pesa ~94 MB (GitHub rechaza archivos >100 MB).
-archive/
-
 # Dataset limpio sin comprimir: 103 MB, al borde del límite duro de GitHub.
 # Lo regenera `python src/limpieza_stackoverflow.py` en un segundo paso.
 data/stackoverflow_limpio.csv
