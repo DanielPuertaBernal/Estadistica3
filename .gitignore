@@ -222,8 +222,10 @@ __marimo__/
 kaggle.json
 .kaggle/
 
-# data/ contiene ÚNICAMENTE el dataset original sin comprimir, por indicación
-# del profesor. Ese CSV SÍ se versiona (requisito de entrega): no agregarlo aquí.
+# data/ contiene ÚNICAMENTE el dataset original comprimido (data/archive.zip),
+# que SÍ se versiona. El CSV suelto pesa ~94 MB: si alguien lo descomprime ahí,
+# que no llegue a un commit por accidente.
+data/*.csv
 
 # Todo lo que produce el script — dataset limpio, tablas y gráficas — vive en
 # salidas/ y se regenera en cada corrida, así que no se versiona.

@@ -15,24 +15,27 @@ Cumple los mínimos del parcial (≥1000 registros y ≥20 variables combinadas)
 ## Estructura
 
 ```
-limpieza_stackoverflow.py     Código de limpieza
-data/                         SOLO el dataset original, sin comprimir
-  survey_results_public.csv   Respuestas de la encuesta — se versiona
-  survey_results_schema.csv   Diccionario de variables — se versiona
+limpieza_stackoverflow.py     Código de limpieza — un solo archivo, en la raíz
+data/                         SOLO el dataset original
+  archive.zip                 Descarga de Kaggle, comprimida — se versiona
 salidas/                      Todo lo que produce el script — NO se versiona
   stackoverflow_limpio.csv    Dataset limpio
   tabla_sesgo_imputacion.csv  Estadísticos antes/después de imputar
   graficas/                   Histogramas antes/después por variable
-doc/                          Enunciado, entregables y plan de revisión
+doc/                          Enunciado, protocolo y plan de revisión
 ```
 
-`data/` contiene únicamente el dataset original, sin comprimir. Nada de lo que produce
-la limpieza entra ahí: el script escribe siempre en `salidas/`, y el archivo original
-no se modifica nunca.
+`data/` contiene únicamente el dataset original, comprimido. Nada de lo que produce la
+limpieza entra ahí: el script escribe siempre en `salidas/`, y el archivo original no
+se modifica nunca.
 
-`survey_results_public.csv` pesa 94.603.888 bytes (90 MiB). Está por debajo del límite
-duro de GitHub (100 MiB) pero muy por encima del umbral recomendado de 50 MB, así que
-GitHub avisa al subirlo. Como el original nunca cambia, git guarda una sola copia.
+**No hace falta descomprimir nada.** El script lee el CSV directamente desde el ZIP, así
+que los ~94 MB del original nunca necesitan existir sueltos en el disco. Por eso
+`data/*.csv` está en `.gitignore`: si alguien descomprime ahí para mirar los datos, ese
+archivo no llega a un commit por accidente.
+
+**La entrega es un comprimido aparte**, no este repositorio. El dataset limpio se toma
+de `salidas/` al armarlo.
 
 ## Preparación del entorno
 
@@ -57,7 +60,7 @@ Kaggle no permite la descarga anónima: la API responde 404 sin credenciales.
 
 **Opción B — Descarga manual**
 
-Descargar el ZIP desde la página del dataset y descomprimirlo dentro de `data/`.
+Descargar el ZIP desde la página del dataset y guardarlo como `data/archive.zip`.
 
 El archivo original no se modifica: la limpieza produce un archivo nuevo.
 
