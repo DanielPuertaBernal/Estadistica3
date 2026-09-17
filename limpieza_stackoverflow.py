@@ -871,6 +871,51 @@ if mascara_horas_imposibles.any():
           f"correccion seria un invento y habria que tratarlos como "
           f"faltantes.")
 
+# Grafica de apoyo para el caso 3. La hipotesis del digito de mas compite con
+# otra igual de razonable a primera vista: que la persona haya respondido horas
+# al MES en vez de a la semana. Las dos se pueden dibujar sobre la distribucion
+# real y ver cual cae donde trabaja la gente.
+if mascara_horas_imposibles.any():
+    horas_reales = df.loc[
+        ~mascara_horas_imposibles & df["WorkWeekHrs"].between(1, 168), "WorkWeekHrs"
+    ]
+    bajo_hipotesis_digito = pd.Series(valores_antes_correccion) / 10
+    bajo_hipotesis_mes = pd.Series(valores_antes_correccion) / 4.3  # semanas por mes
+
+    fig, ax = plt.subplots(figsize=(9, 4.5))
+    ax.hist(horas_reales, bins=60, color="0.75",
+            label=f"Respuestas validas de la encuesta (n={len(horas_reales):,})")
+    tope = ax.get_ylim()[1]
+    ax.vlines(bajo_hipotesis_digito, 0, tope * 0.55, color="tab:green", linewidth=1.5,
+              label="Los 62 valores / 10  (hipotesis: sobra un digito)")
+    ax.vlines(bajo_hipotesis_mes, 0, tope * 0.55, color="tab:red", linewidth=1.5,
+              linestyle="--", label="Los 62 valores / 4.3  (hipotesis: son horas al mes)")
+    ax.set_xlim(0, 120)
+    ax.set_xlabel("Horas de trabajo por semana")
+    ax.set_ylabel("Cantidad de encuestados")
+    ax.set_title("Caso 3: que hipotesis deja los valores donde trabaja la gente")
+    ax.legend(fontsize=8)
+    fig.tight_layout()
+    ruta_figura_caso3 = CARPETA_GRAFICAS / "atipicos_WorkWeekHrs_hipotesis.png"
+    fig.savefig(ruta_figura_caso3, dpi=110)
+    plt.close(fig)
+
+    fuera_digito = (bajo_hipotesis_digito > 60).sum()
+    fuera_mes = (bajo_hipotesis_mes > 60).sum()
+    print(f"\n     Comparacion de las dos hipotesis, contando cuantos quedan "
+          f"por encima de 60 h/semana:")
+    print(f"       dividir entre 10  (sobra un digito): {fuera_digito} de "
+          f"{len(bajo_hipotesis_digito)}")
+    print(f"       dividir entre 4.3 (horas al mes):    {fuera_mes} de "
+          f"{len(bajo_hipotesis_mes)}")
+    repetido = pd.Series(valores_antes_correccion).value_counts().idxmax()
+    n_repetido = pd.Series(valores_antes_correccion).value_counts().max()
+    print(f"       El valor mas repetido es {repetido:.0f} "
+          f"({n_repetido} de {len(valores_antes_correccion)} casos), que "
+          f"entre 10 da {repetido/10:.1f} h/semana.")
+    print(f"     Grafica: {ruta_figura_caso3.relative_to(RAIZ)}")
+
+
 # --- Caso 4 (OBLIGATORIO): un atipico que NO se debe eliminar -----------
 # WorkWeekHrs entre 100 y 168 horas/semana: el metodo RIC los marca como
 # candidatos (estan muy por encima del limite superior calculado arriba),
@@ -911,7 +956,10 @@ df.loc[mascara_comptotal_absurdo, "CompTotal"] = np.nan
 # real, y conviene dejar dicho por que: la columna no entra al analisis, y el
 # dataset ya trae la version convertida a USD.
 if "CurrencySymbol" in df.columns:
-    monedas = df["CurrencySymbol"].nunique()
+    # Se descuenta "Desconocido", que no es una moneda sino el relleno que la
+    # seccion 4.5 puso donde la persona no respondio. Contarlo infla el numero
+    # en uno y deja la evidencia expuesta a que se la discutan.
+    monedas = df.loc[df["CurrencySymbol"] != "Desconocido", "CurrencySymbol"].nunique()
     print(f"\nEvidencia: CompTotal viene en la moneda local de cada "
           f"persona y en este dataset hay {monedas} monedas distintas "
           f"(columna CurrencySymbol). Sumar o promediar pesos, rupias y "
