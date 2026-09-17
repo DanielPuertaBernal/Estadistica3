@@ -659,17 +659,57 @@ if COLUMNA_PARA_BINARIAS in columnas_respuesta_multiple:
     marcadas_por_fila = df[COLUMNA_PARA_BINARIAS].astype(str).map(
         lambda v: set(separar_opciones(v))
     )
+    # Los simbolos que distinguen un lenguaje de otro se traducen a palabras
+    # ANTES de limpiar el nombre. Si solo se reemplazara todo lo no alfanumerico
+    # por guion bajo, "C", "C#" y "C++" terminarian los tres en la misma
+    # columna "usa_C" y dos lenguajes desapareceria en silencio, quedando la
+    # columna con los datos del ultimo que se escribio.
+    SIMBOLOS_EN_NOMBRES = {"+": "_plus", "#": "_sharp"}
+
+    def nombre_de_columna_binaria(opcion):
+        texto = opcion
+        for simbolo, palabra in SIMBOLOS_EN_NOMBRES.items():
+            texto = texto.replace(simbolo, palabra)
+        texto = "".join(ch if ch.isalnum() else "_" for ch in texto)
+        while "__" in texto:
+            texto = texto.replace("__", "_")
+        return f"usa_{texto.strip('_')}"
+
     columnas_binarias_nuevas = {}
     for opcion in opciones_binarias:
-        # El nombre de la columna se limpia porque hay opciones como "C++" o
-        # "C#", que como encabezado de columna dan problemas.
-        sufijo = "".join(ch if ch.isalnum() else "_" for ch in opcion).strip("_")
-        columnas_binarias_nuevas[f"usa_{sufijo}"] = marcadas_por_fila.map(
-            lambda marcadas, o=opcion: int(o in marcadas)
+        columnas_binarias_nuevas[nombre_de_columna_binaria(opcion)] = (
+            marcadas_por_fila.map(lambda marcadas, o=opcion: int(o in marcadas))
         )
+
+    # Red de seguridad: si dos opciones distintas siguen produciendo el mismo
+    # nombre, el diccionario se habria comido una sin avisar. Mejor romper aqui
+    # que entregar un dataset al que le faltan columnas.
+    if len(columnas_binarias_nuevas) != len(opciones_binarias):
+        nombres = [nombre_de_columna_binaria(o) for o in opciones_binarias]
+        repetidos = sorted({n for n in nombres if nombres.count(n) > 1})
+        raise ValueError(
+            f"Dos opciones de {COLUMNA_PARA_BINARIAS} generan el mismo nombre "
+            f"de columna: {repetidos}. Hay que agregar el simbolo que las "
+            f"distingue a SIMBOLOS_EN_NOMBRES."
+        )
+
     df = pd.concat([df, pd.DataFrame(columnas_binarias_nuevas, index=df.index)], axis=1)
     print(f"\nSe agregaron {len(columnas_binarias_nuevas)} columnas binarias "
           f"(usa_<opcion>) a partir de {COLUMNA_PARA_BINARIAS}.")
+
+    # Verificacion de que las binarias y el conteo cuentan lo mismo: si cada
+    # marca de la celda se convirtio en un 1, la suma de todas las binarias
+    # tiene que dar exactamente igual que la suma de la columna de conteo.
+    total_binarias = int(df[list(columnas_binarias_nuevas)].sum().sum())
+    total_conteo = int(df[f"n_{COLUMNA_PARA_BINARIAS}"].sum())
+    print(f"Verificacion: suma de las binarias = {total_binarias:,} y suma de "
+          f"n_{COLUMNA_PARA_BINARIAS} = {total_conteo:,} -> "
+          f"{'COINCIDEN' if total_binarias == total_conteo else 'NO COINCIDEN'}")
+    if total_binarias != total_conteo:
+        raise ValueError(
+            "Las binarias no reproducen el conteo: se perdieron marcas al "
+            "expandir la columna."
+        )
     print(f"Se eligio una sola pregunta a proposito: expandir las "
           f"{len(columnas_respuesta_multiple)} agregaria "
           f"{len(tabla_frecuencias)} columnas al dataset final. La tabla de "

@@ -48,6 +48,21 @@ punto 3 nombra literal.
 cada persona, así que no existe un rango único contra el cual medirla. Su control es el
 de §8, donde se anulan los valores absurdos.
 
+## Bug encontrado en la revisión final contra el PDF
+
+Las columnas binarias de `LanguageWorkedWith` se generaban limpiando el nombre con
+"todo lo no alfanumérico pasa a guion bajo". Eso hacía que **`C`, `C#` y `C++`
+terminaran los tres en `usa_C`**: el diccionario se comía dos y la columna quedaba con
+los datos del último escrito. Salían 23 binarias en vez de 25, y nadie avisaba.
+
+Se detectó comparando dos números que tienen que ser iguales: la suma de todas las
+binarias daba 257.476 contra 288.004 de `n_LanguageWorkedWith`.
+
+Arreglo: los símbolos se traducen a palabras antes de limpiar el nombre (`+` → `_plus`,
+`#` → `_sharp`), y el script ahora **revienta** si dos opciones producen el mismo nombre
+o si las dos sumas no coinciden. Conteos correctos: `usa_C` 12.487, `usa_C_sharp`
+18.041, `usa_C_plus_plus` 13.707.
+
 ## Dependencias
 
 `requirements.txt` pasó de **111 paquetes a 3**. El script solo importa `pandas`, `numpy` y
