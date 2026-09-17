@@ -1,12 +1,24 @@
-# 2. Plan de ejecución y revisión
+# 2. Plan de ejecución y revisión — CERRADO
 
 **Equipo:** Daniel Puerta Bernal · Tomás Marín Estrada · Juan Diego Guzmán Chalarca
 
-El código ya está escrito: un único script, `limpieza_stackoverflow.py`, que cubre de la
-carga al dataset limpio.
+> ## ✅ El plan está cumplido
+>
+> **Los 13 puntos del parcial están cubiertos por el código**, verificados uno por uno
+> contra el enunciado. Todo el trabajo de este plan está en `main`.
+>
+> | | |
+> |---|---|
+> | Dataset | 64.461 × 61 → **63.803 × 113** |
+> | Reproducibilidad | `d1ca48a07a446b9623a74542cc45006fac29ac3bfc285cefeaa64a1eb03a5e21`, idéntica en dos corridas |
+> | Rangos numéricos | Las 6 variables en OK, 0 valores fuera de rango |
+> | Original | Intacto, 64.461 × 61 |
+>
+> **Lo único que queda son los 8 párrafos de justificación del informe**, listados abajo
+> en *Lo que nadie puede delegar*. El parcial los reserva expresamente al equipo.
 
-Este documento no reparte la escritura del código. Reparte la **revisión** y el trabajo
-que queda.
+Este documento queda como registro del reparto y de los pendientes resueltos. El detalle
+de qué cambió y por qué está en `doc/3-registro-de-cambios-daniel.md`.
 
 ---
 
