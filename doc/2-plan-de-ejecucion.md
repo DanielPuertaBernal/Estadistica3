@@ -136,9 +136,9 @@ Tres tipos de pendiente, y conviene no mezclarlos:
 | # | Tipo | Pendiente |
 |---|---|---|
 | T1 | ✅ | Carga desde `data/archive.zip`, rutas desde la raíz del repositorio |
-| T2 | **B** | Las reglas de coherencia comparan sin tolerancia. El enunciado no exige tolerancia, así que alcanza con justificar la decisión |
-| T3 | **B** | Ante una fila incoherente el script solo la **marca**, no corrige ni imputa. Defendible —no se sabe cuál de las dos columnas está mal— pero hay que decirlo así en el informe |
-| T4 | ✅ | ~~Nadie había comprobado que dos corridas den el mismo archivo.~~ **Resuelto.** §11.1 calcula la huella SHA-256 del CSV recién escrito. Verificado con dos corridas seguidas: `17196cd0…deaa31` las dos veces, confirmado también con `sha256sum` |
+| T2 | ✅ | Las reglas de coherencia comparan sin tolerancia: es defendible porque el protocolo entregado no exige margen (p. ej. 1 año por redondeo de encuesta), así que no es una desviación sino una decisión abierta del equipo |
+| T3 | ✅ | Ante una fila incoherente el script solo la **marca**, no corrige: la regla detecta la contradicción pero no dice cuál de las dos columnas falla, así que corregir sería inventar un valor. Se marca con `coherencia_edad_codigo_ok` / `coherencia_experiencia_ok` (306 y 7.235 filas) y no se borra la fila para no perder el resto del registro |
+| T4 | ✅ | ~~Nadie había comprobado que dos corridas den el mismo archivo.~~ **Resuelto.** §11.1 calcula la huella SHA-256 del CSV recién escrito. Verificado con dos corridas seguidas: `17196cd0…deaa31` las dos veces, confirmado también con `sha256sum`. Verificación cruzada adicional sobre el propio bloque: **§1 Carga — OK** (lee `data/archive.zip` → `survey_results_public.csv` en solo lectura, shape real 64.461 × 61, el ZIP no se descomprime ni cambia, el segundo miembro `survey_results_schema.csv` se ignora correctamente); **§2 Exploración — OK** (llama `.info()`, nulos, `describe()` y duplicados; `ConvertedComp` da 46,1% de nulos, la misma cifra que P7). No se modificó código, solo verificación |
 | T5 | ✅ | ~~Faltaba el chequeo de máximos y mínimos del punto 11.~~ **Resuelto.** §9.1 compara las 6 variables numéricas contra su rango posible y dice de dónde sale cada límite. **Las 6 en OK, 0 valores fuera de rango** — es el control final de que las correcciones de §8 se aplicaron |
 | T6 | ✅ | ~~El script no llamaba a `.info()`.~~ **Resuelto.** §2 lo llama, y conserva el resumen por tipo porque con 61 columnas la lista de `.info()` es larga |
 
@@ -186,7 +186,7 @@ Todos los números ya están impresos por el script. Los párrafos los escribe e
 | D6 — por qué no se reconstruye `CompTotal` | Daniel | 142 monedas distintas |
 | J1 — por qué imputar y no eliminar filas | Juan Diego | Umbral del 50% en §4.1 |
 | J2 — por qué `"Desconocido"` y no la moda | Juan Diego | §4.5 |
-| T3 — por qué marcar y no corregir | Tomás | §9, dos columnas de bandera |
+| T3 — por qué marcar y no corregir | Tomás — ✅ escrito | §9, dos columnas de bandera |
 
 **El más importante es E2.** "¿Por qué 1,5?" es P15, y el protocolo entregado no fija el
 factor. Si nadie puede responderlo, el punto más pesado del parcial queda sin defensa.
