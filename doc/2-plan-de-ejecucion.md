@@ -108,19 +108,19 @@ Ya no son "desviaciones del protocolo". Son tres cosas distintas, y conviene no 
 |---|---|---|
 | J1 | **A** | Eliminación de filas (punto 5). El script no descarta ninguna fila por exceso de vacíos. Decidir si se implementa un umbral o si se justifica conservarlas todas |
 | J2 | **B** | Todo faltante categórico va a `"Desconocido"`, sin distinguir a quien no respondió de quien nunca recibió la pregunta. El protocolo entregado solo promete `"Desconocido"`, así que cumple; pero es la clase de matiz que preguntan |
-| J3 | **C** | **Bug.** `pct_nulos` se calcula en §2, antes de la conversión de tipos de §3. `pd.to_numeric(errors="coerce")` puede generar nulos nuevos, así que el umbral del 50% de §4.1 decide con porcentajes viejos. Recalcular después de la conversión y ver si cambia alguna decisión |
+| J3 | ✅ | ~~`pct_nulos` se calculaba antes de la conversión de tipos.~~ **Resuelto.** Se recalcula en §4.1 ya con los tipos corregidos. La conversión no genera ningún nulo nuevo en este dataset, así que no cambia ninguna decisión — pero el umbral queda apoyado en los números correctos |
 | J4 | **C** | El script imprime que `ConvertedComp` llega a 46,1% de nulos. Verificar ese número contra la corrida real: **P7 pregunta exactamente por el umbral** y esa cifra es la que lo justifica |
 
 ### Daniel — §5–§8
 
 | # | Tipo | Pendiente |
 |---|---|---|
-| D1 | **B** | Duplicados: el script usa `keep="first"`, sin preferir el registro más completo. El protocolo entregado no promete nada sobre eso, así que cumple. Vale saber cuántas filas cambiarían con el otro criterio — **P22** |
-| D2 | **A** | Normalización de categóricas (punto 9). El script solo hace `strip`, sin unificar mayúsculas. Decidir si hace falta, y verificar que el número de categorías no baje: si baja, se fusionaron categorías distintas |
-| D3 | **A** | Columnas de respuesta múltiple separadas por `;` (punto 9). Son 19. Contar frecuencias sin separarlas da resultados sin sentido. Decidir si se derivan columnas de conteo o binarias |
-| D4 | **B** | Categorías de baja frecuencia en `Ethnicity` y `Country`: hoy no se agrupan. Decisión libre; si se deja así, justificar por qué la cola larga no molesta |
-| D5 | **B** | `WorkWeekHrs > 168` se corrige **dividiendo entre 10**. Al dividir, los 62 valores caen entre 22,5 y 47,5 horas semanales: creíble. Es una corrección inventada, pero el protocolo entregado no lo prohíbe. **Defenderla con ese dato**, no con la intuición |
-| D6 | **B** | `CompTotal` se anula por encima de 10⁹ sin cruzar con `CompFreq` ni la moneda. Se justifica porque esa columna no entra al análisis de sueldos (para eso está `ConvertedComp`, ya en USD). Decirlo así en el informe |
+| D1 | ✅ | ~~Duplicados con `keep="first"`.~~ **Resuelto.** Ahora conserva el registro más completo, con el primero como desempate. **0 grupos cambian de ganador**: los duplicados son encuestas casi vacías con la misma cantidad de campos llenos. Dato listo para **P22** |
+| D2 | ✅ | ~~Solo hacía `strip`.~~ **Resuelto.** Unifica mayúsculas solo donde hay colisión real, hacia la variante más frecuente; no baja todo a minúsculas, que destruiría `United States`. Verificado: **0 colisiones**, 80.590 categorías antes y después |
+| D3 | ✅ | ~~Columnas de respuesta múltiple sin tratar.~~ **Resuelto.** Son **20**, no 19. Se agregaron 20 columnas `n_<pregunta>`, la tabla `salidas/frecuencias_respuesta_multiple.csv` con las 286 opciones reales, y binarias `usa_<opción>` para `LanguageWorkedWith` |
+| D4 | ✅ | ~~Cola larga sin agrupar.~~ **Resuelto.** Columnas `Country_agrupado` y `Ethnicity_agrupado` al lado de las originales. **El dato para el informe:** la cola de `Ethnicity` es el 3,9% de la gente, la de `Country` el 30,1%. Agrupar países mete casi un tercio en `"Otros"` |
+| D5 | ✅ | ~~`WorkWeekHrs ÷ 10` sin respaldo impreso.~~ **Resuelto.** El script ahora imprime la evidencia: los 62 corregidos quedan entre 22,5 y 47,5 h/semana, contra un 90% central de 30 a 50 en el resto de la encuesta. Falta el párrafo del informe |
+| D6 | ✅ | ~~`CompTotal` anulado sin justificación impresa.~~ **Resuelto.** El script imprime que hay **142 monedas distintas** en el dataset: por eso no se reconstruye y el análisis usa `ConvertedComp`, ya en USD. Falta el párrafo del informe |
 
 ### Los tres juntos
 
