@@ -228,6 +228,13 @@ print("\nEn este dataset TODAS las variables numericas dieron asimetricas "
 # Guardamos una copia de cada variable ANTES de tocarla, para las graficas
 valores_antes_de_imputar = {col: df[col].copy() for col in VARIABLES_NUMERICAS}
 
+# Marca auxiliar: que filas traian la edad de verdad y cuales la van a recibir
+# imputada. Va como columna y no como Series aparte a proposito: mas adelante
+# se borran duplicados y se reinicia el indice, asi que una Series suelta
+# dejaria de alinear con el DataFrame. En la seccion 8 hace falta para no
+# acusar de error de digitacion a una fila cuya edad la pusimos nosotros.
+df["_age_era_real"] = df["Age"].notna()
+
 for col in VARIABLES_NUMERICAS:
     valor_relleno = df[col].mean() if estrategia_por_variable[col] == "media" else df[col].median()
     df[col] = df[col].fillna(valor_relleno)
@@ -298,7 +305,13 @@ print("\nConclusion: imputar con la media aqui es enganoso, porque la media "
 # ---------------------------------------------------------------------------
 linea("4.5 Imputacion de variables categoricas")
 
-columnas_categoricas = df.select_dtypes(exclude="number").columns.tolist()
+# Las columnas que empiezan con "_" son andamiaje interno del script (marcas
+# auxiliares), no respuestas de la encuesta: quedan fuera de todo el
+# tratamiento de categoricas y se borran antes de guardar. Sin esta exclusion,
+# la seccion 7 las convertiria a texto con astype(str) y una marca booleana
+# pasaria a ser la cadena "False", que en Python es verdadera.
+columnas_categoricas = [c for c in df.select_dtypes(exclude="number").columns
+                        if not c.startswith("_")]
 nulos_categoricos_antes = df[columnas_categoricas].isnull().sum().sum()
 
 for col in columnas_categoricas:
@@ -420,17 +433,35 @@ categorias_antes = {col: df[col].nunique() for col in columnas_categoricas}
 columnas_con_espacios = []
 colisiones_por_mayusculas = {}
 
+columnas_con_caracteres_raros = {}
+
+# Caracteres que no deberian aparecer nunca dentro de una respuesta: tabulador,
+# salto de linea, retorno de carro y demas caracteres de control, mas el
+# simbolo de reemplazo que deja un error de codificacion.
+CARACTERES_DE_CONTROL = r"[\x00-\x1f\x7f\ufffd]"
+
 for col in columnas_categoricas:
     valores = df[col].astype(str)
 
-    # 1. Espacios sobrantes: se recortan siempre. Es seguro, porque
+    # 1. Caracteres especiales y malas digitaciones: un tabulador o un salto de
+    #    linea metido dentro de una categoria la convierte en una categoria
+    #    aparte que nadie va a poder cruzar con la buena. Se reemplazan por un
+    #    espacio y despues se colapsan los espacios repetidos.
+    tiene_raros = valores.str.contains(CARACTERES_DE_CONTROL, regex=True)
+    if tiene_raros.any():
+        ejemplo = valores[tiene_raros].iloc[0]
+        columnas_con_caracteres_raros[col] = (int(tiene_raros.sum()), ejemplo)
+        valores = valores.str.replace(CARACTERES_DE_CONTROL, " ", regex=True)
+    valores = valores.str.replace(r"\s{2,}", " ", regex=True)
+
+    # 2. Espacios sobrantes: se recortan siempre. Es seguro, porque
     #    "Colombia " y "Colombia" son la misma respuesta con un error de
     #    captura, no dos categorias.
     if (valores != valores.str.strip()).any():
         columnas_con_espacios.append(col)
     valores = valores.str.strip()
 
-    # 2. Colisiones de mayusculas: agrupamos los valores unicos por su version
+    # 3. Colisiones de mayusculas: agrupamos los valores unicos por su version
     #    en minusculas. Si un grupo tiene mas de un valor original, son la
     #    misma respuesta escrita distinto.
     grupos = {}
@@ -457,6 +488,10 @@ for col in columnas_categoricas:
 categorias_despues = {col: df[col].nunique() for col in columnas_categoricas}
 
 print(f"Columnas categoricas revisadas: {len(columnas_categoricas)}")
+print(f"Columnas con caracteres de control o de codificacion: "
+      f"{len(columnas_con_caracteres_raros)}")
+for col, (n, ejemplo) in columnas_con_caracteres_raros.items():
+    print(f"  {col}: {n} valor(es) corregido(s). Antes: {ejemplo!r}")
 print(f"Columnas con espacios sobrantes: {len(columnas_con_espacios)}")
 print(f"Columnas con colisiones de mayusculas: {len(colisiones_por_mayusculas)}")
 for col, colisiones in list(colisiones_por_mayusculas.items())[:5]:
@@ -483,11 +518,23 @@ elif bajaron:
           "corregir. Ninguna categoria distinta se fusiono por accidente.")
 else:
     print("Ninguna columna perdio categorias: el conteo es identico antes y "
-          "despues. Las opciones de esta encuesta vienen de listas "
-          "desplegables cerradas, asi que no habia inconsistencias de texto "
-          "que corregir. El chequeo queda corriendo igual, porque si manana "
-          "se corre este script sobre una version con respuestas libres si "
-          "las va a haber.")
+          "despues. Las correcciones que si se aplicaron (los caracteres de "
+          "control de arriba) limpiaron el valor sin fusionarlo con otro, que "
+          "es justo lo que se queria. Las opciones de esta encuesta vienen de "
+          "listas desplegables cerradas, por eso las inconsistencias son tan "
+          "pocas; el chequeo queda corriendo igual, porque si manana se corre "
+          "este script sobre una version con respuestas libres si las va a "
+          "haber.")
+
+print("\nSobre 'estandarizar todo a minusculas': no se aplica, y la razon es "
+      "el conteo de arriba. Bajar el texto sirve cuando hay la misma "
+      "respuesta escrita de dos formas, y aqui hay CERO casos: las opciones "
+      "salen de listas desplegables cerradas. Aplicarlo igual no corregiria "
+      "nada y si dejaria 'united states' y 'c++' en el dataset final, mas "
+      "dificiles de leer y de cruzar con cualquier fuente externa. La "
+      "estandarizacion se hace donde hay inconsistencia real: caracteres de "
+      "control, espacios sobrantes y colisiones de mayusculas, los tres "
+      "verificados arriba.")
 
 
 # ---------------------------------------------------------------------------
@@ -809,6 +856,96 @@ if "CurrencySymbol" in df.columns:
           f"CompFreq y moneda seria trabajo sobre una columna que despues no "
           f"se usa.")
 
+# --- Caso 6: ConvertedComp alto -> subpoblacion distinta -----------------
+# El RIC marca 2.301 sueldos por encima del limite superior. No son errores:
+# son sueldos posibles y, sobre todo, NO estan repartidos al azar por el
+# dataset. Se concentran en unos pocos paises de salarios altos y en gente con
+# mas experiencia y con empleo de tiempo completo. Eso es exactamente lo que
+# define una subpoblacion distinta: un grupo con comportamiento propio, no una
+# cola de valores sueltos.
+# Accion: CONSERVAR y MARCAR con una variable indicadora, para poder
+# analizarlo aparte en vez de dejarlo contaminando los promedios generales.
+limite_inf_comp, limite_sup_comp = limites_ric(series_para_calcular_limites["ConvertedComp"])
+mascara_salario_alto = df["ConvertedComp"] > limite_sup_comp
+
+print(f"\nCaso 6 - ConvertedComp: {mascara_salario_alto.sum()} registro(s) por "
+      f"encima de {limite_sup_comp:,.0f} USD. Clasificacion: SUBPOBLACION "
+      f"DISTINTA. Accion: CONSERVAR y marcar con la columna "
+      f"'subpoblacion_salario_alto'.")
+
+# La evidencia: si fueran valores sueltos, los paises se repartirian igual que
+# en el resto del dataset. No se reparten igual.
+paises_atipicos = (df.loc[mascara_salario_alto, "Country"]
+                   .value_counts(normalize=True) * 100)
+paises_general = (df["Country"].value_counts(normalize=True) * 100)
+comparacion_paises = pd.DataFrame({
+    "pct_entre_salarios_altos": paises_atipicos.head(5).round(1),
+    "pct_en_todo_el_dataset": paises_general.reindex(paises_atipicos.head(5).index).round(1),
+})
+print("\n     Evidencia 1 - de donde son. Si fueran valores sueltos, estos "
+      "porcentajes serian parecidos:")
+print(comparacion_paises.to_string())
+
+exp_altos = df.loc[mascara_salario_alto, "YearsCodePro"].median()
+exp_resto = df.loc[~mascara_salario_alto, "YearsCodePro"].median()
+print(f"\n     Evidencia 2 - experiencia profesional mediana: "
+      f"{exp_altos:.0f} anios en el grupo de salarios altos contra "
+      f"{exp_resto:.0f} en el resto.")
+
+if "Employment" in df.columns:
+    tc_altos = df.loc[mascara_salario_alto, "Employment"].astype(str).str.contains("full-time").mean() * 100
+    tc_resto = df.loc[~mascara_salario_alto, "Employment"].astype(str).str.contains("full-time").mean() * 100
+    print(f"     Evidencia 3 - empleo de tiempo completo: {tc_altos:.0f}% en "
+          f"el grupo contra {tc_resto:.0f}% en el resto.")
+
+df["subpoblacion_salario_alto"] = mascara_salario_alto
+print("\n     Por eso NO se eliminan ni se imputan: borrarlos sacaria del "
+      "estudio justo a los desarrolladores mejor pagos, que son un grupo real "
+      "de la poblacion. La columna indicadora permite analizarlos aparte.")
+
+
+# --- Caso 7: YearsCode / YearsCodePro -> dos grupos dentro del mismo marcado
+# El RIC marca como atipicos a los programadores mas veteranos. La mayoria son
+# perfectamente creibles: 40 anios programando a los 55 de edad no tiene nada
+# de raro. Pero adentro del mismo grupo hay unos pocos casos imposibles: gente
+# que segun sus datos habria empezado a programar antes de los 5 anios.
+# El mismo marcado estadistico contiene entonces DOS cosas distintas, y por eso
+# se separan antes de actuar.
+EDAD_MINIMA_PARA_PROGRAMAR = 5
+
+for col in ["YearsCode", "YearsCodePro"]:
+    limite_inf_exp, limite_sup_exp = limites_ric(series_para_calcular_limites[col])
+    candidatos_exp = df[col] > limite_sup_exp
+
+    # Solo se juzga a las filas que traian la edad de verdad: si la edad la
+    # imputamos nosotros, una incoherencia contra ella no prueba nada.
+    edad_confiable = df["_age_era_real"]
+    imposibles = candidatos_exp & edad_confiable & (
+        df[col] > df["Age"] - EDAD_MINIMA_PARA_PROGRAMAR
+    )
+    validos_extremos = candidatos_exp & ~imposibles
+
+    mediana_col = resumen_antes.loc[col, "mediana"]
+    print(f"\nCaso 7 - {col}: {candidatos_exp.sum()} candidato(s) del metodo "
+          f"RIC (por encima de {limite_sup_exp:.1f} anios). Se separan en dos:")
+    print(f"     a) {imposibles.sum()} con ERROR DE DIGITACION: implicarian "
+          f"haber empezado a programar antes de los "
+          f"{EDAD_MINIMA_PARA_PROGRAMAR} anios de edad. Accion: se tratan como "
+          f"faltantes y se reemplazan por la mediana ({mediana_col:.0f} anios).")
+    print(f"     b) {validos_extremos.sum()} son OBSERVACION VALIDA EXTREMA: "
+          f"veteranos reales, con edad mediana de "
+          f"{df.loc[validos_extremos, 'Age'].median():.0f} anios. Accion: "
+          f"CONSERVAR sin modificar.")
+
+    df.loc[imposibles, col] = mediana_col
+
+print("\nLa leccion del caso 7 es que un grupo marcado por el metodo no tiene "
+      "por que ser homogeneo: aqui el mismo marcado juntaba errores de "
+      "digitacion con los programadores mas veteranos de la muestra. Aplicar "
+      "una sola accion a todo el grupo habria borrado experiencia real o "
+      "conservado datos imposibles.")
+
+
 # --- Registro de cuantos datos se habrian perdido si se eliminaran TODOS los
 #     atipicos detectados (en vez de clasificarlos como hicimos arriba) ----
 linea("Cuantos registros se habrian perdido eliminando TODOS los atipicos")
@@ -885,6 +1022,10 @@ print("Se creo 'grupo_edad' agrupando Age en rangos (<=20, 21-30, 31-40, 41-50, 
 # 11. GUARDAR DATASET LIMPIO (nunca se sobrescribe el original)
 # ---------------------------------------------------------------------------
 linea("11. GUARDAR DATASET LIMPIO")
+
+# La marca auxiliar de la seccion 4 era andamiaje interno: no forma parte del
+# dataset limpio.
+df = df.drop(columns=["_age_era_real"])
 
 df.to_csv(ARCHIVO_LIMPIO, index=False)
 print(f"Dataset original:  data/{ARCHIVO_ZIP.name} -> {CSV_DENTRO_DEL_ZIP}  "

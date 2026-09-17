@@ -15,9 +15,23 @@ Uso interno: **no va en la entrega**. Tomás y Juan Diego llevan su propio regis
 | §7 | Normalización: se recortan espacios siempre; las mayúsculas se unifican **solo donde hay colisión real**, hacia la variante más frecuente. Se cuentan categorías antes y después | Pasar todo a minúsculas convertiría `United States` en `united states` sin arreglar nada: **0 columnas** tienen colisiones. El conteo antes/después prueba que no se fusionó ninguna categoría distinta |
 | §7.1 | **Nuevo.** Detecta las 20 columnas de respuesta múltiple (`;`), agrega `n_<pregunta>` con cuántas opciones marcó cada persona, exporta `salidas/frecuencias_respuesta_multiple.csv` con las 286 opciones reales, y genera binarias `usa_<opción>` para `LanguageWorkedWith` | Contar frecuencias sin separar da resultados sin sentido: `Python;SQL` y `SQL;Python` cuentan como categorías distintas. Binarias para una sola pregunta porque expandir las 20 agregaría 286 columnas |
 | §7.2 | **Nuevo.** Columnas `Country_agrupado` y `Ethnicity_agrupado`: categorías bajo el 1% pasan a `"Otros"`. Las originales no se tocan | Las dos tienen cola larga, pero muy distinta: en `Ethnicity` la cola es el **3,9%** de la gente (agrupar es barato); en `Country` es el **30,1%** (agrupar metería casi un tercio de los encuestados en una categoría que no significa nada) |
-| §8 | Evidencia impresa para dos decisiones que antes iban sin respaldo | `WorkWeekHrs ÷ 10`: los 62 valores corregidos quedan entre 22,5 y 47,5 h/semana, todos dentro de jornadas posibles. `CompTotal`: hay **142 monedas** distintas en el dataset, por eso no se reconstruye y el análisis usa `ConvertedComp` (ya en USD) |
+| §7 | Se corrigen caracteres de control dentro de las categorías y se colapsan espacios repetidos | El punto 9 pide corregir errores por caracteres especiales. Los había: **`CurrencyDesc` traía 4 valores con un tabulador adentro** (`'e\tCook Islands dollar'`) |
+| §8 | Evidencia impresa para dos decisiones que antes iban sin respaldo | `WorkWeekHrs ÷ 10`: los 62 valores corregidos quedan entre 22,5 y 47,5 h/semana. `CompTotal`: hay **142 monedas** distintas, por eso no se reconstruye y el análisis usa `ConvertedComp` (ya en USD) |
+| §8 | **Caso 6 nuevo.** `ConvertedComp` alto (2.301 registros) clasificado como **subpoblación distinta**: se conserva y se marca con `subpoblacion_salario_alto` | Faltaba la quinta categoría que pide el punto 10, y faltaba clasificar este grupo. No están repartidos al azar: **48,6% son de EE.UU. contra 19,5% del dataset**, 91% con empleo de tiempo completo contra 70%, mediana de 9 años de experiencia contra 6 |
+| §8 | **Caso 7 nuevo.** `YearsCode` (3.119) y `YearsCodePro` (1.894) separados en dos grupos dentro del mismo marcado | Faltaban por clasificar. El mismo marcado juntaba cosas distintas: **47 y 4 casos imposibles** (implicarían programar desde antes de los 5 años) → error de digitación, se imputan con la mediana; **3.072 y 1.890 veteranos reales** (edad mediana 50 y 52) → observación válida extrema, se conservan |
 
-**Resultado:** 64.461 × 61 → **63.803 × 110**. Sin errores, de punta a punta.
+**Resultado:** 64.461 × 61 → **63.803 × 111**. Sin errores, de punta a punta.
+
+### Un bug que apareció al implementar el caso 7
+
+La marca auxiliar `_age_era_real` (para no acusar de error de digitación a una fila
+cuya edad imputamos nosotros) se colaba en el tratamiento de categóricas: §7 la pasaba
+a texto con `astype(str)` y `False` se volvía la cadena `"False"`, que en Python es
+verdadera. Resultado: 651 falsos errores de digitación en vez de 47.
+
+Se arregló excluyendo de `columnas_categoricas` todo lo que empiece con `_`. Convención
+nueva: **prefijo `_` = andamiaje interno del script**, fuera de todo tratamiento y
+borrado antes de guardar.
 
 ## Dependencias
 
