@@ -70,3 +70,4 @@ carpeta se ejecute.
 | `doc/1-protocolo-previo-de-limpieza.md` | Protocolo entregado al docente — transcripción literal |
 | `doc/2-plan-de-ejecucion.md` | Reparto de revisión y pendientes — uso interno, no va en la entrega |
 | `doc/Parcial - Estadística III.pdf` | Enunciado |
+| `REPARTO-DEL-INFORME.md` | Quién escribe cada párrafo del informe — uso interno |
