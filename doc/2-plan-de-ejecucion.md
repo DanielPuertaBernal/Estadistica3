@@ -85,53 +85,98 @@ sección.
 
 ## Pendientes
 
-Ya no son "desviaciones del protocolo". Son tres cosas distintas, y conviene no mezclarlas:
+**Estado al día de hoy:** Daniel terminó todo su código. Tomás y Juan Diego todavía no
+arrancaron. El código que llegó del compañero ya cubre buena parte de sus bloques, así
+que lo que les queda es **menos de lo que parece**: verificar, completar dos huecos y
+escribir.
+
+| | Código | Escritura |
+|---|---|---|
+| **Daniel** | ✅ completo | 5 párrafos del informe |
+| **Tomás** | 2 huecos reales (T4, T5) | 2 párrafos |
+| **Juan Diego** | ✅ ya cumple; falta verificar un número | 3 párrafos |
+
+Tres tipos de pendiente, y conviene no mezclarlos:
 
 - **A — Requisito del parcial sin cubrir.** El enunciado lo pide y el script no lo hace.
-  Hay que implementarlo o justificar por qué no.
-- **B — Decisión a justificar.** El script ya lo hace; hay que poder defenderlo, porque
-  nadie prometió hacerlo así.
-- **C — Bug o verificación.** Algo está mal o sin comprobar, aparte de todo lo demás.
+- **B — Decisión a justificar.** El script ya lo hace; hace falta un párrafo que lo
+  defienda, porque el protocolo entregado no prometía nada al respecto.
+- **C — Bug o verificación.** Algo está mal o sin comprobar.
 
-### Tomás — §1–§3 y §9–§11
+### Daniel — §5–§8 · código terminado
+
+| # | Tipo | Estado |
+|---|---|---|
+| D1 | ✅ | Duplicados: conserva el registro más completo. 0 grupos cambian de ganador — los duplicados son encuestas casi vacías |
+| D2 | ✅ | Normalización: caracteres de control corregidos (`CurrencyDesc` traía 4 valores con tabulador), espacios y colisiones de mayúsculas. 80.590 categorías antes y después |
+| D3 | ✅ | 20 columnas de respuesta múltiple: conteos `n_<pregunta>`, tabla de 286 opciones en `salidas/`, binarias para `LanguageWorkedWith` |
+| D4 | ✅ | `Country_agrupado` y `Ethnicity_agrupado`. Cola de `Ethnicity` = 3,9% de la gente; la de `Country` = 30,1% |
+| D5 | ✅ | `WorkWeekHrs ÷ 10`: evidencia impresa, 62 valores entre 22,5 y 47,5 h/semana |
+| D6 | ✅ | `CompTotal`: 142 monedas distintas en el dataset, por eso no se reconstruye |
+| D7 | ✅ | Caso 6: `ConvertedComp` alto = **subpoblación distinta**, la quinta categoría que faltaba. Se conserva y se marca |
+| D8 | ✅ | Caso 7: `YearsCode` y `YearsCodePro` separados en 47+4 errores de digitación contra 3.072+1.890 veteranos reales |
+
+**Le queda solo escribir** (ver *Lo que nadie puede delegar*, abajo): D5, D6, E1, E2, E3.
+
+### Tomás — §1–§3 y §9–§11 · sin arrancar
 
 | # | Tipo | Pendiente |
 |---|---|---|
-| T1 | ✅ | ~~La carga leía un CSV suelto del directorio actual.~~ **Resuelto.** Lee `data/archive.zip` con `zipfile` sin descomprimir en disco y escribe en `salidas/`. Rutas resueltas desde la raíz del repositorio. Verificado de punta a punta: 64.461 → 63.803 filas |
-| T2 | **A** | Reglas de coherencia (punto 11 del parcial). El script tiene dos: `Age1stCode ≤ Age` y `YearsCodePro ≤ YearsCode`. Decidir si alcanzan y si hace falta tolerancia por redondeo de encuesta |
-| T3 | **B** | Ante una fila incoherente el script solo la **marca** con una bandera booleana: no corrige ni imputa. Es defendible —no se sabe cuál de las dos columnas está mal— pero hay que decirlo con esas palabras en el informe |
-| T4 | **C** | Reproducibilidad (punto 12). La semilla está fijada pero nadie comprobó que dos corridas den el mismo archivo. Correr dos veces y comparar el hash |
+| T1 | ✅ | Carga desde `data/archive.zip`, rutas desde la raíz del repositorio |
+| T2 | **B** | Las reglas de coherencia comparan sin tolerancia. El enunciado no exige tolerancia, así que alcanza con justificar la decisión |
+| T3 | **B** | Ante una fila incoherente el script solo la **marca**, no corrige ni imputa. Defendible —no se sabe cuál de las dos columnas está mal— pero hay que decirlo así en el informe |
+| T4 | **C** | **Punto 12.** La semilla está fijada pero nadie comprobó que dos corridas den el mismo archivo. Correr dos veces y comparar el hash del CSV. Es de las cosas más rápidas de toda la lista |
+| T5 | **A** | **Punto 11, hueco real.** El enunciado pide textual *"verificar valores máximos y mínimos para variables numéricas"*. §9 solo tiene las dos reglas lógicas; falta el chequeo de rangos sobre el dataset ya limpio |
+| T6 | **C** | **Punto 3.** El enunciado nombra `.info()`; el script usa `dtypes.value_counts()` más el shape por separado. Cubre lo mismo, pero agregar la llamada literal cuesta una línea y cierra el punto sin discusión |
 
-### Juan Diego — §4–§4.5
-
-| # | Tipo | Pendiente |
-|---|---|---|
-| J1 | **A** | Eliminación de filas (punto 5). El script no descarta ninguna fila por exceso de vacíos. Decidir si se implementa un umbral o si se justifica conservarlas todas |
-| J2 | **B** | Todo faltante categórico va a `"Desconocido"`, sin distinguir a quien no respondió de quien nunca recibió la pregunta. El protocolo entregado solo promete `"Desconocido"`, así que cumple; pero es la clase de matiz que preguntan |
-| J3 | ✅ | ~~`pct_nulos` se calculaba antes de la conversión de tipos.~~ **Resuelto.** Se recalcula en §4.1 ya con los tipos corregidos. La conversión no genera ningún nulo nuevo en este dataset, así que no cambia ninguna decisión — pero el umbral queda apoyado en los números correctos |
-| J4 | **C** | El script imprime que `ConvertedComp` llega a 46,1% de nulos. Verificar ese número contra la corrida real: **P7 pregunta exactamente por el umbral** y esa cifra es la que lo justifica |
-
-### Daniel — §5–§8
+### Juan Diego — §4–§4.5 · sin arrancar, pero el código ya cumple
 
 | # | Tipo | Pendiente |
 |---|---|---|
-| D1 | ✅ | ~~Duplicados con `keep="first"`.~~ **Resuelto.** Ahora conserva el registro más completo, con el primero como desempate. **0 grupos cambian de ganador**: los duplicados son encuestas casi vacías con la misma cantidad de campos llenos. Dato listo para **P22** |
-| D2 | ✅ | ~~Solo hacía `strip`.~~ **Resuelto.** Unifica mayúsculas solo donde hay colisión real, hacia la variante más frecuente; no baja todo a minúsculas, que destruiría `United States`. Verificado: **0 colisiones**, 80.590 categorías antes y después |
-| D3 | ✅ | ~~Columnas de respuesta múltiple sin tratar.~~ **Resuelto.** Son **20**, no 19. Se agregaron 20 columnas `n_<pregunta>`, la tabla `salidas/frecuencias_respuesta_multiple.csv` con las 286 opciones reales, y binarias `usa_<opción>` para `LanguageWorkedWith` |
-| D4 | ✅ | ~~Cola larga sin agrupar.~~ **Resuelto.** Columnas `Country_agrupado` y `Ethnicity_agrupado` al lado de las originales. **El dato para el informe:** la cola de `Ethnicity` es el 3,9% de la gente, la de `Country` el 30,1%. Agrupar países mete casi un tercio en `"Otros"` |
-| D5 | ✅ | ~~`WorkWeekHrs ÷ 10` sin respaldo impreso.~~ **Resuelto.** El script ahora imprime la evidencia: los 62 corregidos quedan entre 22,5 y 47,5 h/semana, contra un 90% central de 30 a 50 en el resto de la encuesta. Falta el párrafo del informe |
-| D6 | ✅ | ~~`CompTotal` anulado sin justificación impresa.~~ **Resuelto.** El script imprime que hay **142 monedas distintas** en el dataset: por eso no se reconstruye y el análisis usa `ConvertedComp`, ya en USD. Falta el párrafo del informe |
+| J1 | **B** | **Corrección importante:** el enunciado dice *"aplicar **alguna o varias** de las siguientes estrategias"*, y eliminar registros incompletos es una de varias. No implementarlo **no es un hueco**: basta con justificar por qué se eligió imputar en vez de eliminar |
+| J2 | **B** | Todo faltante categórico va a `"Desconocido"`, sin distinguir a quien no respondió de quien nunca recibió la pregunta. El enunciado acepta `"Desconocido"` explícitamente, así que cumple; es un matiz que preguntan |
+| J3 | ✅ | El % de nulos se recalcula después de convertir tipos. La conversión no genera ningún nulo nuevo, así que no cambia ninguna decisión |
+| J4 | **C** | Verificar contra la corrida real que `ConvertedComp` da 46,1% de nulos. **P7 pregunta exactamente por el umbral** y esa cifra es la que lo sostiene |
+
+Los puntos 5 y 6 del parcial ya están cubiertos por el código: umbral del 50%, imputación
+por sesgo, tabla antes/después, histogramas superpuestos y la comparación de dos
+estrategias sobre `ConvertedComp` en §4.4.
 
 ### Los tres juntos
 
 | # | Tipo | Pendiente |
 |---|---|---|
-| E1 | **B** | **El orden del pipeline.** El script imputa antes de tratar atípicos. Metodológicamente es discutible —los valores imputados aprietan Q1 y Q3—, pero §8 lo compensa: calcula los límites sobre los datos **sin imputar**, guardados en `valores_antes_de_imputar`. El protocolo entregado no fija ningún orden, así que no hay promesa rota. **Pero es el primer lugar donde va a mirar quien sepa del tema.** Hay que explicar ese parche sin titubear |
-| E2 | **B** | El factor del rango intercuartílico es **1,5**, y el protocolo entregado solo dice "rango intercuartílico", sin número. Es el valor estándar, pero nadie se comprometió a él: saber por qué 1,5 y no 3 — **P15** |
-| E3 | **B** | El protocolo entregado no promete ninguna tabla de acciones para atípicos; el script clasifica en cinco categorías igual. Eso es **más** de lo prometido, y está bien — pero solo si los tres pueden explicar los cinco casos — **P16** |
-| E4 | ✅ | ~~Numeración interna inconsistente.~~ **Resuelto.** Había una sola referencia mal: §3 decía que la verificación de tipos ocurre en "sección 7" cuando está en §6. Las demás citas verificadas y correctas |
-| E5 | ✅ | ~~El repositorio guardaba un borrador que nadie entregó, con nombre de protocolo.~~ **Resuelto.** `doc/1-protocolo-previo-de-limpieza.md` es ahora la transcripción literal del documento entregado |
-| E6 | **C** | Dos erratas en el protocolo entregado: dice `Respondentm` en vez de `Respondent`, y "sí coinciden" en vez de "si coinciden". Están transcritas tal cual porque el archivo es el registro de lo entregado. Decidir si se corrigen en el informe final o se dejan |
+| E1 | **B** | **El orden del pipeline.** Imputa antes de tratar atípicos. §8 lo compensa calculando Q1 y Q3 sobre los datos **sin imputar**. El protocolo entregado no fija ningún orden, así que no hay promesa rota — pero es el primer lugar donde va a mirar quien sepa |
+| E2 | **B** | **Por qué factor 1,5 y no 3.** El protocolo entregado dice "rango intercuartílico" sin número: nadie se comprometió a 1,5. Es **P15** |
+| E3 | **B** | Los 7 casos de atípicos, explicados uno por uno. Es **P16** |
+| E4 | ✅ | Numeración interna: había una sola referencia mal (§3 decía "sección 7" por §6) |
+| E5 | ✅ | El borrador de 9 secciones ya no está; `doc/1-protocolo-previo-de-limpieza.md` es la transcripción de lo entregado |
+| E6 | **C** | Dos erratas en el protocolo entregado (`Respondentm`, "sí coinciden"). Decidir si se corrigen en el informe final |
+
+---
+
+## Lo que nadie puede delegar
+
+El parcial prohíbe generar con IA el documento de entrega, el protocolo, **las
+justificaciones y las conclusiones**. Y **P34 pregunta textual**: *"¿En qué punto usó una
+herramienta de IA y qué le pidió exactamente? Muéstreme qué cambió usted de lo que le
+entregó."*
+
+Todos los números ya están impresos por el script. Los párrafos los escribe el equipo:
+
+| Párrafo | Quién | El dato ya está |
+|---|---|---|
+| E2 — por qué factor 1,5 | los 3 | Declarado en §8 |
+| E1 — por qué el orden no contamina | los 3 | §8 usa datos sin imputar |
+| E3 — los 7 casos de atípicos | Daniel | Todos impresos con evidencia |
+| D5 — por qué dividir entre 10 no es inventar | Daniel | 62 valores → 22,5 a 47,5 h |
+| D6 — por qué no se reconstruye `CompTotal` | Daniel | 142 monedas distintas |
+| J1 — por qué imputar y no eliminar filas | Juan Diego | Umbral del 50% en §4.1 |
+| J2 — por qué `"Desconocido"` y no la moda | Juan Diego | §4.5 |
+| T3 — por qué marcar y no corregir | Tomás | §9, dos columnas de bandera |
+
+**El más importante es E2.** "¿Por qué 1,5?" es P15, y el protocolo entregado no fija el
+factor. Si nadie puede responderlo, el punto más pesado del parcial queda sin defensa.
 
 ---
 
