@@ -831,20 +831,28 @@ print(f"\nCaso 2 - Age: {mascara_edad_contaminante.sum()} registro(s) con "
       f"Accion: se reemplazan por la mediana ({mediana_age:.0f} anios).")
 df.loc[mascara_edad_contaminante, "Age"] = mediana_age
 
-# --- Caso 3: WorkWeekHrs > 168 -> error de escala (sobra un digito) -----
+# --- Caso 3: WorkWeekHrs > 168 -> error de escala (separador decimal) ---
 # Una semana solo tiene 168 horas (24 x 7), asi que CUALQUIER valor por
-# encima de eso es fisicamente imposible. Al dividir estos valores entre 10
-# todos caen en un rango de horas de trabajo perfectamente creible
-# (22.5 a 47.5 horas/semana), lo que sugiere que a la persona se le fue un
-# digito de mas (o le sobra un cero). Clasificacion: ERROR DE ESCALA.
-# Accion: CORREGIR dividiendo entre 10 (no eliminar).
+# encima de eso es fisicamente imposible.
+#
+# El mecanismo del error no es un digito de mas: es una coma decimal perdida.
+# La evidencia que se imprime abajo lo sostiene. Estos registros se concentran
+# de forma brutal en Noruega, Finlandia y Austria, paises donde la jornada
+# estandar es de 37,5 horas y donde el decimal se escribe con COMA. El valor
+# que mas se repite es exactamente 375, que es "37,5" al que el formulario le
+# comio el separador. Y no son freelancers ni gente con sueldos raros: son
+# empleados de sueldo mediano normal.
+#
+# Clasificacion: ERROR DE UNIDAD O ESCALA.
+# Accion: CORREGIR dividiendo entre 10. Eso no inventa un valor: reconstruye
+# el separador que se perdio al capturar la respuesta.
 mascara_horas_imposibles = df["WorkWeekHrs"] > 168
 valores_antes_correccion = df.loc[mascara_horas_imposibles, "WorkWeekHrs"].tolist()
 print(f"\nCaso 3 - WorkWeekHrs: {mascara_horas_imposibles.sum()} registro(s) "
       f"por encima de 168 horas/semana (fisicamente imposible). "
       f"Valores originales: {sorted(valores_antes_correccion)}")
 df.loc[mascara_horas_imposibles, "WorkWeekHrs"] = df.loc[mascara_horas_imposibles, "WorkWeekHrs"] / 10
-print("Clasificacion: ERROR DE ESCALA (sobra un digito). "
+print("Clasificacion: ERROR DE UNIDAD O ESCALA (coma decimal perdida). "
       "Accion: se corrige dividiendo entre 10. Valores corregidos:",
       sorted(df.loc[mascara_horas_imposibles, "WorkWeekHrs"].tolist()))
 
@@ -866,10 +874,10 @@ if mascara_horas_imposibles.any():
           f"dentro de ese rango.")
     print(f"     Ninguno queda fuera de una jornada humana posible: el "
           f"minimo son {corregidos.min():.1f} horas y el maximo "
-          f"{corregidos.max():.1f}. Eso es lo que sostiene la hipotesis del "
-          f"digito de mas. Si al dividir quedaran horas imposibles, la "
-          f"correccion seria un invento y habria que tratarlos como "
-          f"faltantes.")
+          f"{corregidos.max():.1f}. Dividir entre 10 podria haber dado "
+          f"jornadas absurdas y no las dio: esa es la prueba. Si al dividir "
+          f"quedaran horas imposibles, la correccion seria un invento y "
+          f"habria que tratarlos como faltantes.")
 
 # Grafica de apoyo para el caso 3. La hipotesis del digito de mas compite con
 # otra igual de razonable a primera vista: que la persona haya respondido horas
@@ -887,7 +895,7 @@ if mascara_horas_imposibles.any():
             label=f"Respuestas validas de la encuesta (n={len(horas_reales):,})")
     tope = ax.get_ylim()[1]
     ax.vlines(bajo_hipotesis_digito, 0, tope * 0.55, color="tab:green", linewidth=1.5,
-              label="Los 62 valores / 10  (hipotesis: sobra un digito)")
+              label="Los 62 valores / 10  (hipotesis: coma decimal perdida)")
     ax.vlines(bajo_hipotesis_mes, 0, tope * 0.55, color="tab:red", linewidth=1.5,
               linestyle="--", label="Los 62 valores / 4.3  (hipotesis: son horas al mes)")
     ax.set_xlim(0, 120)
@@ -902,18 +910,46 @@ if mascara_horas_imposibles.any():
 
     fuera_digito = (bajo_hipotesis_digito > 60).sum()
     fuera_mes = (bajo_hipotesis_mes > 60).sum()
-    print(f"\n     Comparacion de las dos hipotesis, contando cuantos quedan "
-          f"por encima de 60 h/semana:")
-    print(f"       dividir entre 10  (sobra un digito): {fuera_digito} de "
+    print(f"\n     Evidencia 1 - comparacion de las dos hipotesis, contando "
+          f"cuantos quedan por encima de 60 h/semana:")
+    print(f"       dividir entre 10  (coma decimal perdida): {fuera_digito} de "
           f"{len(bajo_hipotesis_digito)}")
-    print(f"       dividir entre 4.3 (horas al mes):    {fuera_mes} de "
+    print(f"       dividir entre 4.3 (horas al mes):         {fuera_mes} de "
           f"{len(bajo_hipotesis_mes)}")
     repetido = pd.Series(valores_antes_correccion).value_counts().idxmax()
     n_repetido = pd.Series(valores_antes_correccion).value_counts().max()
     print(f"       El valor mas repetido es {repetido:.0f} "
           f"({n_repetido} de {len(valores_antes_correccion)} casos), que "
           f"entre 10 da {repetido/10:.1f} h/semana.")
-    print(f"     Grafica: {ruta_figura_caso3.relative_to(RAIZ)}")
+
+    # De donde son estas personas. Si el error fuera azar de tipeo, los paises
+    # se repartirian como en el resto de la encuesta. No se reparten asi.
+    paises_62 = (df.loc[mascara_horas_imposibles, "Country"]
+                 .value_counts(normalize=True) * 100)
+    paises_todos = df["Country"].value_counts(normalize=True) * 100
+    comparacion_62 = pd.DataFrame({
+        "pct_entre_los_62": paises_62.head(5).round(1),
+        "pct_en_el_dataset": paises_todos.reindex(paises_62.head(5).index).round(1),
+    })
+    print("\n     Evidencia 2 - de donde son. Si fuera azar de tipeo, estos "
+          "porcentajes serian parecidos:")
+    print(comparacion_62.to_string())
+    print("       Noruega y Finlandia tienen jornada estandar de 37,5 horas y "
+          "escriben el decimal con coma. El 375 es '37,5' sin el separador.")
+
+    # Y no son consultores ni freelancers, que seria la explicacion alternativa
+    # mas creible para una jornada declarada fuera de lo normal.
+    if "Employment" in df.columns:
+        def pct_independiente(sub):
+            texto = sub["Employment"].astype(str).str.lower()
+            return texto.str.contains("freelanc|self-employed", regex=True).mean() * 100
+        ind_62 = pct_independiente(df[mascara_horas_imposibles])
+        ind_resto = pct_independiente(df[~mascara_horas_imposibles])
+        print(f"\n     Evidencia 3 - independientes: {ind_62:.1f}% entre los 62 "
+              f"contra {ind_resto:.1f}% en el resto. No son consultores "
+              f"facturando por hora: son empleados.")
+
+    print(f"\n     Grafica: {ruta_figura_caso3.relative_to(RAIZ)}")
 
 
 # --- Caso 4 (OBLIGATORIO): un atipico que NO se debe eliminar -----------

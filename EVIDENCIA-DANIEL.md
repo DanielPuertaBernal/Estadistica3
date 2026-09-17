@@ -36,14 +36,38 @@ Defiéndala.*
 vez de eliminarlos o tratarlos como faltantes. Una semana tiene 168 horas (24 × 7), así
 que cualquier valor por encima es físicamente imposible.
 
+### El mecanismo real: no sobraba un dígito, se perdió la coma
+
+La primera lectura es "a la persona se le fue un dígito". Los datos dicen algo más
+preciso, y más fácil de defender.
+
+**De dónde son los 62:**
+
+| País | % entre los 62 | % en el dataset |
+|---|---|---|
+| **Noruega** | **22,6%** | 0,6% |
+| **Finlandia** | **19,4%** | 0,5% |
+| Alemania | 12,9% | 6,1% |
+| **Austria** | **9,7%** | 0,8% |
+| Francia | 8,1% | 3,0% |
+
+Noruega aparece 37 veces más de lo que le correspondería; Finlandia, 39 veces más. Si
+fuera azar de tipeo, los países se repartirían como en el resto de la encuesta.
+
+**La jornada estándar en Noruega y Finlandia es de 37,5 horas, y esos países escriben el
+decimal con coma.** El `375` que aparece 44 veces es `37,5` al que el formulario le comió
+el separador.
+
+Eso cambia la naturaleza de la corrección: dividir entre 10 no inventa un número,
+**reconstruye un separador perdido en la captura**.
+
 ### La hipótesis rival que hay que derribar
 
-Dividir entre 10 asume que sobraba un dígito. Pero hay otra lectura igual de razonable a
-primera vista: **que la persona respondió horas al MES** en vez de a la semana. Si fuera
-así, habría que dividir entre 4,3 (semanas por mes), no entre 10.
+Queda otra lectura posible: **que la persona respondió horas al MES** en vez de a la
+semana. Si fuera así habría que dividir entre 4,3 (semanas por mes), no entre 10.
 
-Las dos hipótesis se pueden medir contra la misma pregunta: *¿cuál deja los valores donde
-trabaja la gente de verdad?*
+Las dos se miden contra la misma pregunta: *¿cuál deja los valores donde trabaja la gente
+de verdad?*
 
 ### Los 62 valores, uno por uno
 
@@ -68,10 +92,12 @@ trabaja la gente de verdad?*
 
 ### Tres datos más que suman
 
-- **44 de los 62 valores son exactamente `375`.** Entre 10 da 37,5 h/semana, que es la
-  jornada estándar de buena parte de Europa.
-- **59 de los 62 terminan en 5 o en 0** — el patrón de alguien escribiendo un número
-  redondo, no de una medición.
+- **44 de los 62 valores son exactamente `375`.** Si fueran 62 personas reportando
+  realidades distintas, no tendrían por qué coincidir.
+- **No son consultores.** Independientes (freelance o cuenta propia): **1,6% entre los 62
+  contra 8,8% en el dataset**. Son empleados, no gente facturando por hora.
+- **Sueldo mediano de los 44 que escribieron `375`: 55.718 USD**, contra 54.049 del resto
+  de la encuesta. Gente absolutamente promedio.
 - Los valores más frecuentes en el resto de la encuesta: **40 h** (19.292 respuestas),
   45 h (3.787), 50 h (2.747), 35 h (2.000), 38 h (1.352).
 
@@ -88,10 +114,12 @@ La regenera el script en `salidas/graficas/atipicos_WorkWeekHrs_hipotesis.png`.
 ### ⬜ Falta escribir
 
 - **Movimiento 3:** ¿por qué el hecho de que los 62 caigan en jornadas creíbles al
-  dividir entre 10 prueba que sobraba un dígito? ¿Qué se habría visto si la hipótesis
-  fuera falsa?
-- **Movimiento 4:** dividir entre 10 escribe un número que el encuestado nunca puso.
-  ¿Bajo qué supuesto es legítimo? ¿Qué pasa si ese supuesto no se cumple?
+  dividir entre 10 prueba que hubo un error de captura? ¿Qué se habría visto si la
+  hipótesis fuera falsa? (Pista: dividir entre 10 es aritmética, no sabe nada de horas
+  de trabajo. Podría haber dado 3 h o 90 h. Dio jornadas normales 62 veces de 62.)
+- **Movimiento 4:** dividir entre 10 escribe un número que el encuestado no tecleó.
+  ¿Por qué reconstruir una coma perdida no es lo mismo que inventar un dato? ¿Qué
+  quedaría sin explicar si los países NO se concentraran como se concentran?
 
 ---
 
