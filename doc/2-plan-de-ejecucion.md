@@ -17,8 +17,7 @@
 > **Lo único que queda son los 8 párrafos de justificación del informe**, listados abajo
 > en *Lo que nadie puede delegar*. El parcial los reserva expresamente al equipo.
 
-Este documento queda como registro del reparto y de los pendientes resueltos. El detalle
-de qué cambió y por qué está en `doc/3-registro-de-cambios-daniel.md`.
+Este documento queda como registro del reparto y de los pendientes resueltos.
 
 ---
 
