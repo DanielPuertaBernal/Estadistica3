@@ -227,6 +227,31 @@ Los 2.301 sueldos altos no están repartidos al azar:
 Además: **91% con empleo de tiempo completo** contra 70% en el resto, y mediana de
 **9 años** de experiencia profesional contra 6.
 
+### El límite entre el caso 4 y el caso 6 — y por qué es discutible
+
+Los dos son valores reales y a los dos se los conserva, pero llevan etiqueta distinta.
+Hay que poder sostener esa diferencia, porque **es la decisión más atacable de la
+sección** y sirve directo para **P4** (*¿cuál de sus decisiones es la más discutible?*).
+
+| | Los 154 (caso 4) | Los 2.301 (caso 6) | Dataset |
+|---|---|---|---|
+| Independientes | **33,1%** | 7,9% | 8,8% |
+| Tiempo completo | 63,0% | **91,0%** | 70,2% |
+| Experiencia profesional (mediana) | 5 años | 9 años | 6 años |
+| Sueldo (mediana, USD) | 23.352 | 551.304 | 54.049 |
+| País dominante | India 17,5% | **EE.UU. 48,6%** | — |
+
+**Los 154 también muestran concentración**, y eso hay que decirlo: un tercio son
+independientes contra el 8,8% del dataset, Polonia aparece al 9,7% cuando es el 2,0% e
+Irán al 5,2% cuando es el 0,8%. No son 154 casos sueltos sin nada en común.
+
+El criterio que los separa es **cuánto del grupo explica la causa**:
+
+| | ¿A cuántos cubre la explicación? |
+|---|---|
+| Caso 6 — "países de salario alto, empleo estable" | **62,7%** de países ricos · **91,0%** tiempo completo |
+| Caso 4 — "son freelancers" | **33,1%** · quedan **103 personas sin explicación** |
+
 ### El cierre obligatorio
 
 Si se hubieran eliminado todas las filas marcadas como atípicas en cualquiera de las 6
@@ -236,6 +261,9 @@ variables revisadas: **14.653 filas de 63.803 = 23,0% del dataset**.
 
 - **Movimiento 3, siete veces:** por qué cada grupo cayó en esa categoría y no en otra.
   Es el párrafo más largo de los tres, por eso.
+- **El límite caso 4 / caso 6:** con la tabla de arriba enfrente, ¿se sostiene la
+  clasificación actual, se reclasifica el caso 4 como subpoblación, o se declara como la
+  decisión discutible? Las tres son defendibles; hay que elegir una y decir por qué.
 - **Movimiento 4:** el caso 4 es el que el enunciado exige. ¿Por qué falló el método
   estadístico ahí? ¿Qué no puede ver el RIC?
 
