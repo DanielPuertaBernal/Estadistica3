@@ -128,7 +128,7 @@ print("(CompTotal muestra numeros con notacion cientifica extrema en el "
 #   - Age1stCode      ("Younger than 5 years", "Older than 85")
 # No podemos calcular media, mediana ni desviacion (paso 4) sobre texto, asi
 # que adelantamos SOLO esta conversion. El resto de la correccion de tipos
-# (verificaciones generales) se hace en la seccion 7, en el orden original.
+# (verificaciones generales) se hace en la seccion 6, en el orden original.
 linea("3. CORRECCION DE TIPOS (ADELANTADA): texto -> numero en 3 columnas")
 
 MAPA_YEARSCODE = {"Less than 1 year": "0.5", "More than 50 years": "51"}
@@ -392,6 +392,25 @@ print(f"Filas antes: {filas_antes_de_dup}  ->  Filas despues: {len(df)}")
 # ---------------------------------------------------------------------------
 # 6. CORRECCION DE TIPOS DE DATOS (verificacion general)
 # ---------------------------------------------------------------------------
+# Convencion de nombres de columna, para que el dataset final no quede como
+# una mezcla arbitraria. La regla tiene dos mitades:
+#
+#   1. Toda columna DERIVADA de una original conserva el nombre de la
+#      original, con un prefijo o sufijo que dice que se le hizo:
+#         n_<Original>          cuantas opciones marco (respuesta multiple)
+#         <Original>_agrupado   version con la cola larga en "Otros"
+#         usa_<opcion>          binaria de una opcion concreta
+#      Asi se puede rastrear de un vistazo de donde salio cada columna.
+#
+#   2. Toda columna INVENTADA por nosotros va en espanol y con guion bajo:
+#         subpoblacion_salario_alto, coherencia_edad_codigo_ok,
+#         anios_codigo_previo_profesional, grupo_edad
+#      El idioma distinto no es descuido: marca a simple vista que esa columna
+#      no venia en la encuesta, la calculamos nosotros.
+#
+# Las columnas originales no se renombran nunca: cambiarles el nombre romperia
+# la trazabilidad contra el dataset de Stack Overflow y contra el diccionario
+# de variables que lo acompana.
 linea("6. CORRECCION DE TIPOS DE DATOS (verificacion general)")
 
 # Las 3 columnas numericas-que-llegaban-como-texto ya se corrigieron en la
