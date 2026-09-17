@@ -188,6 +188,7 @@ Todos los números ya están impresos por el script. Los párrafos los escribe e
 | J2 — por qué `"Desconocido"` y no la moda | Juan Diego | §4.5 |
 | T3 — por qué marcar y no corregir | Tomás — ✅ escrito | §9, dos columnas de bandera |
 
+
 **El más importante es E2.** "¿Por qué 1,5?" es P15, y el protocolo entregado no fija el
 factor. Si nadie puede responderlo, el punto más pesado del parcial queda sin defensa.
 
