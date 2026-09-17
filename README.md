@@ -71,3 +71,4 @@ carpeta se ejecute.
 | `doc/2-plan-de-ejecucion.md` | Reparto de revisión y pendientes — uso interno, no va en la entrega |
 | `doc/Parcial - Estadística III.pdf` | Enunciado |
 | `REPARTO-DEL-INFORME.md` | Quién escribe cada párrafo del informe — uso interno |
+| `EVIDENCIA-DANIEL.md` | Datos y figuras para los párrafos de Daniel — uso interno |
