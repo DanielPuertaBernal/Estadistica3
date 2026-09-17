@@ -69,4 +69,5 @@ carpeta se ejecute.
 |---|---|
 | `doc/1-protocolo-previo-de-limpieza.md` | Protocolo entregado al docente — transcripción literal |
 | `doc/2-plan-de-ejecucion.md` | Reparto de revisión y pendientes — uso interno, no va en la entrega |
+| `doc/3-registro-de-cambios-daniel.md` | Qué cambió Daniel y por qué — uso interno |
 | `doc/Parcial - Estadística III.pdf` | Enunciado |

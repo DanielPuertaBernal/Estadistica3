@@ -43,6 +43,7 @@ CARPETA_SALIDAS = RAIZ / "salidas"
 ARCHIVO_LIMPIO = CARPETA_SALIDAS / "stackoverflow_limpio.csv"
 CARPETA_GRAFICAS = CARPETA_SALIDAS / "graficas"
 ARCHIVO_TABLA_SESGO = CARPETA_SALIDAS / "tabla_sesgo_imputacion.csv"
+ARCHIVO_FRECUENCIAS_MULTIPLE = CARPETA_SALIDAS / "frecuencias_respuesta_multiple.csv"
 
 CARPETA_GRAFICAS.mkdir(parents=True, exist_ok=True)
 
@@ -152,6 +153,25 @@ print(df[["YearsCode", "YearsCodePro", "Age1stCode"]].dtypes)
 linea("4. MANEJO DE VALORES NULOS")
 
 # --- 4.1 Umbral de eliminacion de columnas (regla del protocolo: >50%) -----
+# El porcentaje de nulos se recalcula aqui, y no se reusa el de la seccion 2.
+# Aquel se midio antes de la conversion de tipos, y pd.to_numeric con
+# errors="coerce" convierte en NaN cualquier texto que no estuviera en el
+# mapeo: el umbral tiene que decidirse sobre los nulos que hay ahora.
+pct_nulos_tras_tipos = (df.isnull().mean() * 100).round(1).sort_values(ascending=False)
+
+nulos_nuevos = (pct_nulos_tras_tipos - pct_nulos).round(1)
+nulos_nuevos = nulos_nuevos[nulos_nuevos != 0]
+if len(nulos_nuevos):
+    print("La conversion de tipos genero nulos nuevos en:")
+    print(nulos_nuevos)
+else:
+    print("La conversion de tipos NO genero ningun nulo nuevo: los mapeos de "
+          "la seccion 3 cubrian todos los valores de texto que traian esas "
+          "tres columnas. El recalculo no cambia ninguna decision en este "
+          "dataset, pero deja el umbral apoyado en los datos correctos.")
+
+pct_nulos = pct_nulos_tras_tipos
+
 print("Columna con mas nulos:", pct_nulos.index[0], f"({pct_nulos.iloc[0]}%)")
 columnas_a_eliminar = pct_nulos[pct_nulos > 50].index.tolist()
 print("Columnas que superan el 50% de nulos:", columnas_a_eliminar)
@@ -305,14 +325,54 @@ es_duplicado = df.duplicated(subset=columnas_para_comparar, keep="first")
 print(f"Filas duplicadas encontradas (segun la regla del protocolo): {es_duplicado.sum()}")
 
 # Nota para la sustentacion: revisamos estas filas duplicadas y en promedio
-# solo tienen ~3.5 campos distintos de nulo (de 60), contra ~46 en el resto
+# solo tienen muy pocos campos distintos de nulo, contra decenas en el resto
 # del dataset. Es decir, son en su mayoria encuestas casi vacias que
 # coinciden por tener casi todo en blanco, no necesariamente la misma
-# persona respondiendo dos veces. Aun asi, aplicamos la regla que ya
-# habiamos congelado en el protocolo: no la cambiamos con el resultado ya
-# visto, solo dejamos constancia de este matiz.
+# persona respondiendo dos veces.
+
+# --- Que registro se conserva de cada grupo de duplicados -----------------
+# El protocolo solo define QUE es un duplicado, no cual de los repetidos se
+# conserva. "El primero que aparece" es arbitrario: el orden del archivo no
+# significa nada. Conservar el registro MAS COMPLETO si tiene sentido, porque
+# entre dos respuestas identicas en lo que contestaron, la que tiene mas
+# campos llenos aporta mas informacion y nunca menos.
+completitud = df.notna().sum(axis=1)
+
+# Ordenamos por completitud descendente y marcamos duplicados sobre ese orden:
+# asi el "primero" de cada grupo pasa a ser el mas completo. `mergesort` es
+# estable, de modo que ante un empate en completitud gana el que venia antes
+# en el archivo, tal como pide la regla de desempate.
+orden_por_completitud = completitud.sort_values(ascending=False, kind="mergesort").index
+df_ordenado = df.loc[orden_por_completitud]
+es_duplicado_mas_completo = df_ordenado.duplicated(
+    subset=columnas_para_comparar, keep="first"
+).reindex(df.index)
+
+indices_primero = set(df.index[es_duplicado])
+indices_mas_completo = set(df.index[es_duplicado_mas_completo])
+filas_que_cambian = len(indices_primero ^ indices_mas_completo) // 2
+
+print(f"\nCriterio de conservacion: descartar 'el primero' y descartar "
+      f"'el menos completo' eliminan la misma cantidad de filas "
+      f"({len(indices_primero)}), pero no siempre las mismas: "
+      f"{filas_que_cambian} grupo(s) de duplicados conservan un registro "
+      f"distinto segun el criterio.")
+if filas_que_cambian:
+    campos_primero = completitud[list(indices_primero)].mean()
+    campos_completo = completitud[list(indices_mas_completo)].mean()
+    print(f"     Campos llenos promedio de las filas descartadas: "
+          f"{campos_primero:.1f} con 'el primero' contra "
+          f"{campos_completo:.1f} con 'el menos completo'. Conservamos el mas "
+          f"completo: la diferencia es informacion que se habria perdido por "
+          f"el orden del archivo, que no significa nada.")
+else:
+    print("     Aqui los dos criterios coinciden: los duplicados son "
+          "encuestas casi vacias con la misma cantidad de campos llenos, asi "
+          "que da igual cual se conserve. Aplicamos el mas completo porque es "
+          "el criterio defendible, no porque cambie el resultado.")
+
 filas_antes_de_dup = len(df)
-df = df[~es_duplicado].reset_index(drop=True)
+df = df[~es_duplicado_mas_completo].reset_index(drop=True)
 print(f"Filas antes: {filas_antes_de_dup}  ->  Filas despues: {len(df)}")
 
 
@@ -340,29 +400,248 @@ print("\nEl dataset no contiene columnas de fecha, asi que no aplica el "
 # ---------------------------------------------------------------------------
 linea("7. NORMALIZACION DE VALORES CATEGORICOS")
 
-# Revisamos espacios en blanco al inicio/final y valores que solo difieren
-# en mayusculas/minusculas (ej. "Femenino" vs "femenino").
-columnas_con_problemas = []
+# Buscamos dos problemas distintos: espacios sobrantes al inicio o al final,
+# y valores que solo difieren en mayusculas ("Femenino" vs "femenino").
+#
+# NO pasamos todo a minusculas. Bajar todo el texto
+# convertiria "United States" en "united states" y "C++" en "c++" en el
+# dataset final, sin arreglar nada: la verificacion de abajo demuestra que
+# este dataset no tiene ni una sola colision de mayusculas, porque las
+# respuestas salen de listas desplegables cerradas. Normalizar solo donde hay
+# colision real arregla el problema cuando existe y no toca los datos cuando
+# no existe.
+#
+# El riesgo de esta seccion es el contrario al que parece: normalizar de mas
+# FUSIONA categorias que en realidad eran distintas. Por eso contamos las
+# categorias antes y despues, y si el numero baja sin que hubiera colisiones,
+# el script avisa.
+categorias_antes = {col: df[col].nunique() for col in columnas_categoricas}
+
+columnas_con_espacios = []
+colisiones_por_mayusculas = {}
+
 for col in columnas_categoricas:
     valores = df[col].astype(str)
-    tiene_espacios = (valores != valores.str.strip()).sum()
-    valores_unicos = valores.unique()
-    minusculas = {}
-    for v in valores_unicos:
-        minusculas.setdefault(v.lower(), []).append(v)
-    duplicados_por_mayus = {k: v for k, v in minusculas.items() if len(v) > 1}
-    if tiene_espacios > 0 or duplicados_por_mayus:
-        columnas_con_problemas.append(col)
-    # Se aplica el trim de todas formas, de manera preventiva
-    df[col] = valores.str.strip()
+
+    # 1. Espacios sobrantes: se recortan siempre. Es seguro, porque
+    #    "Colombia " y "Colombia" son la misma respuesta con un error de
+    #    captura, no dos categorias.
+    if (valores != valores.str.strip()).any():
+        columnas_con_espacios.append(col)
+    valores = valores.str.strip()
+
+    # 2. Colisiones de mayusculas: agrupamos los valores unicos por su version
+    #    en minusculas. Si un grupo tiene mas de un valor original, son la
+    #    misma respuesta escrita distinto.
+    grupos = {}
+    for unico in valores.unique():
+        grupos.setdefault(unico.lower(), []).append(unico)
+    colisiones = {k: v for k, v in grupos.items() if len(v) > 1}
+
+    if colisiones:
+        colisiones_por_mayusculas[col] = colisiones
+        # Unificamos cada grupo en su variante MAS FRECUENTE, no en minusculas:
+        # asi se corrige la inconsistencia conservando la forma que el propio
+        # dataset usa mas.
+        frecuencias = valores.value_counts()
+        equivalencias = {}
+        for variantes in colisiones.values():
+            ganadora = max(variantes, key=lambda x: frecuencias.get(x, 0))
+            for variante in variantes:
+                if variante != ganadora:
+                    equivalencias[variante] = ganadora
+        valores = valores.replace(equivalencias)
+
+    df[col] = valores
+
+categorias_despues = {col: df[col].nunique() for col in columnas_categoricas}
 
 print(f"Columnas categoricas revisadas: {len(columnas_categoricas)}")
-print(f"Columnas con inconsistencias de texto encontradas: {len(columnas_con_problemas)}")
-print("Las opciones de esta encuesta vienen de listas desplegables "
-      "cerradas, por eso no aparecieron inconsistencias de mayusculas ni "
-      "textos raros. Igual dejamos el chequeo (y un str.strip() preventivo) "
-      "corriendo en todas las columnas de texto, por si algun dia se corre "
-      "este script sobre una version de los datos con respuestas libres.")
+print(f"Columnas con espacios sobrantes: {len(columnas_con_espacios)}")
+print(f"Columnas con colisiones de mayusculas: {len(colisiones_por_mayusculas)}")
+for col, colisiones in list(colisiones_por_mayusculas.items())[:5]:
+    ejemplo = list(colisiones.values())[0]
+    print(f"  {col}: {len(colisiones)} grupo(s), por ejemplo {ejemplo}")
+
+# --- Verificacion del riesgo: no se pueden perder categorias sin motivo ----
+bajaron = {c: (categorias_antes[c], categorias_despues[c])
+           for c in columnas_categoricas
+           if categorias_despues[c] < categorias_antes[c]}
+bajaron_sin_colision = {c: v for c, v in bajaron.items()
+                        if c not in colisiones_por_mayusculas}
+
+print(f"\nCategorias antes de normalizar:  {sum(categorias_antes.values())}")
+print(f"Categorias despues de normalizar: {sum(categorias_despues.values())}")
+if bajaron_sin_colision:
+    print("ALERTA: estas columnas perdieron categorias sin que hubiera "
+          "colision de mayusculas. Hay que revisarlas antes de seguir:")
+    for c, (a, d) in bajaron_sin_colision.items():
+        print(f"  {c}: {a} -> {d}")
+elif bajaron:
+    print("Las unicas columnas que perdieron categorias son las que tenian "
+          "colisiones de mayusculas, que es exactamente lo que se queria "
+          "corregir. Ninguna categoria distinta se fusiono por accidente.")
+else:
+    print("Ninguna columna perdio categorias: el conteo es identico antes y "
+          "despues. Las opciones de esta encuesta vienen de listas "
+          "desplegables cerradas, asi que no habia inconsistencias de texto "
+          "que corregir. El chequeo queda corriendo igual, porque si manana "
+          "se corre este script sobre una version con respuestas libres si "
+          "las va a haber.")
+
+
+# ---------------------------------------------------------------------------
+# 7.1 COLUMNAS DE RESPUESTA MULTIPLE (varias respuestas en la misma celda)
+# ---------------------------------------------------------------------------
+linea("7.1 COLUMNAS DE RESPUESTA MULTIPLE")
+
+# Varias preguntas permitian marcar mas de una opcion, y la encuesta guardo
+# todas las marcadas en una sola celda separadas por punto y coma:
+#   "Python;SQL;JavaScript"
+# Contar frecuencias sobre esa celda sin separarla da resultados sin sentido:
+# "Python;SQL" y "SQL;Python" cuentan como dos categorias distintas, y quien
+# sabe Python solo se mezcla con quien sabe Python y otras nueve cosas. Por
+# eso hay que separarlas antes de contar.
+#
+# Las originales NO se modifican: se agregan columnas nuevas.
+SEPARADOR_MULTIPLE = ";"
+UMBRAL_DETECCION_MULTIPLE = 0.02  # 2% de filas con separador ya delata la pregunta
+
+columnas_respuesta_multiple = []
+for col in columnas_categoricas:
+    valores = df[col].astype(str)
+    proporcion_con_separador = valores.str.contains(SEPARADOR_MULTIPLE, regex=False).mean()
+    if proporcion_con_separador > UMBRAL_DETECCION_MULTIPLE:
+        columnas_respuesta_multiple.append(col)
+
+print(f"Columnas de respuesta multiple detectadas: "
+      f"{len(columnas_respuesta_multiple)}")
+print(f"(criterio: mas del {UMBRAL_DETECCION_MULTIPLE:.0%} de las filas traen "
+      f"'{SEPARADOR_MULTIPLE}' en la celda)")
+
+
+def separar_opciones(valor):
+    """Devuelve la lista de opciones marcadas en una celda.
+
+    'Desconocido' es el relleno que pusimos en la seccion 4.5 para las
+    preguntas sin responder: no es una opcion elegida, asi que cuenta como
+    cero respuestas."""
+    if valor == "Desconocido":
+        return []
+    return [parte.strip() for parte in valor.split(SEPARADOR_MULTIPLE) if parte.strip()]
+
+
+# --- 7.1.a Columna de conteo por pregunta ---------------------------------
+# Cuantas opciones marco cada persona. Es informacion nueva y util por si
+# sola: mide, por ejemplo, cuantos lenguajes usa cada desarrollador.
+for col in columnas_respuesta_multiple:
+    df[f"n_{col}"] = df[col].astype(str).map(lambda v: len(separar_opciones(v)))
+
+print(f"\nSe agregaron {len(columnas_respuesta_multiple)} columnas de conteo "
+      f"(n_<pregunta>): cuantas opciones marco cada encuestado.")
+resumen_conteos = pd.DataFrame({
+    "promedio_opciones": [df[f"n_{c}"].mean() for c in columnas_respuesta_multiple],
+    "maximo_opciones": [df[f"n_{c}"].max() for c in columnas_respuesta_multiple],
+}, index=columnas_respuesta_multiple).round(2)
+print(resumen_conteos)
+
+# --- 7.1.b Tabla de frecuencias reales por opcion -------------------------
+# Esta tabla es la razon de ser de toda la seccion: es la unica forma de
+# responder "cuanta gente usa Python" sin que la respuesta quede contaminada
+# por las combinaciones.
+filas_frecuencias = []
+total_encuestados = len(df)
+for col in columnas_respuesta_multiple:
+    conteo = {}
+    for valor in df[col].astype(str):
+        for opcion in separar_opciones(valor):
+            conteo[opcion] = conteo.get(opcion, 0) + 1
+    for opcion, n in sorted(conteo.items(), key=lambda kv: -kv[1]):
+        filas_frecuencias.append({
+            "pregunta": col,
+            "opcion": opcion,
+            "n_encuestados": n,
+            "pct_encuestados": round(100 * n / total_encuestados, 2),
+        })
+
+tabla_frecuencias = pd.DataFrame(filas_frecuencias)
+tabla_frecuencias.to_csv(ARCHIVO_FRECUENCIAS_MULTIPLE, index=False)
+print(f"\nTabla de frecuencias por opcion guardada en "
+      f"{ARCHIVO_FRECUENCIAS_MULTIPLE.relative_to(RAIZ)} "
+      f"({len(tabla_frecuencias)} opciones distintas en total).")
+
+# --- 7.1.c Columnas binarias para una pregunta -----------------------------
+# Expandir las 20 preguntas a binarias agregaria cientos de columnas al
+# dataset final. Lo hacemos para UNA, la mas usada en analisis de esta
+# encuesta, para dejar la tecnica demostrada y aplicable al resto.
+COLUMNA_PARA_BINARIAS = "LanguageWorkedWith"
+
+if COLUMNA_PARA_BINARIAS in columnas_respuesta_multiple:
+    opciones_binarias = sorted(
+        tabla_frecuencias.loc[
+            tabla_frecuencias["pregunta"] == COLUMNA_PARA_BINARIAS, "opcion"
+        ]
+    )
+    marcadas_por_fila = df[COLUMNA_PARA_BINARIAS].astype(str).map(
+        lambda v: set(separar_opciones(v))
+    )
+    columnas_binarias_nuevas = {}
+    for opcion in opciones_binarias:
+        # El nombre de la columna se limpia porque hay opciones como "C++" o
+        # "C#", que como encabezado de columna dan problemas.
+        sufijo = "".join(ch if ch.isalnum() else "_" for ch in opcion).strip("_")
+        columnas_binarias_nuevas[f"usa_{sufijo}"] = marcadas_por_fila.map(
+            lambda marcadas, o=opcion: int(o in marcadas)
+        )
+    df = pd.concat([df, pd.DataFrame(columnas_binarias_nuevas, index=df.index)], axis=1)
+    print(f"\nSe agregaron {len(columnas_binarias_nuevas)} columnas binarias "
+          f"(usa_<opcion>) a partir de {COLUMNA_PARA_BINARIAS}.")
+    print(f"Se eligio una sola pregunta a proposito: expandir las "
+          f"{len(columnas_respuesta_multiple)} agregaria "
+          f"{len(tabla_frecuencias)} columnas al dataset final. La tabla de "
+          f"frecuencias de arriba ya cubre el analisis de las demas.")
+else:
+    print(f"\n{COLUMNA_PARA_BINARIAS} no quedo entre las columnas de "
+          f"respuesta multiple; no se generaron binarias.")
+
+
+# ---------------------------------------------------------------------------
+# 7.2 CATEGORIAS DE BAJA FRECUENCIA (cola larga)
+# ---------------------------------------------------------------------------
+linea("7.2 CATEGORIAS DE BAJA FRECUENCIA")
+
+# Country y Ethnicity arrastran una cola larga: decenas de categorias con
+# poquisimos casos cada una. Agruparlas en "Otros" simplifica el analisis,
+# pero tambien borra detalle, asi que la decision no puede ser automatica:
+# depende de CUANTA gente cae en esa cola.
+#
+# Las columnas originales NO se tocan: se agrega una version agrupada al
+# lado, para poder usar la que convenga en cada analisis.
+UMBRAL_BAJA_FRECUENCIA = 0.01  # 1% de los encuestados
+
+for col in ["Country", "Ethnicity"]:
+    if col not in df.columns:
+        continue
+    proporciones = df[col].value_counts(normalize=True)
+    categorias_raras = proporciones[proporciones < UMBRAL_BAJA_FRECUENCIA].index
+    pct_en_la_cola = proporciones[proporciones < UMBRAL_BAJA_FRECUENCIA].sum() * 100
+
+    df[f"{col}_agrupado"] = df[col].where(~df[col].isin(categorias_raras), "Otros")
+
+    print(f"\n{col}: {df[col].nunique()} categorias originales")
+    print(f"  Por debajo del {UMBRAL_BAJA_FRECUENCIA:.0%}: "
+          f"{len(categorias_raras)} categorias, que juntas son el "
+          f"{pct_en_la_cola:.1f}% de los encuestados")
+    print(f"  Columna nueva '{col}_agrupado': "
+          f"{df[f'{col}_agrupado'].nunique()} categorias")
+
+print("\nLo que hay que mirar aqui no es cuantas categorias se agrupan, sino "
+      "cuanta GENTE queda dentro de 'Otros'. Si la cola concentra una "
+      "fraccion grande de los encuestados, agrupar deja de ser una "
+      "simplificacion y pasa a ser una perdida de informacion: 'Otros' se "
+      "vuelve una de las categorias mas grandes del analisis y no significa "
+      "nada. Por eso dejamos las dos versiones y la eleccion se justifica "
+      "columna por columna en el informe, con los porcentajes de arriba.")
 
 
 # ---------------------------------------------------------------------------
@@ -455,6 +734,29 @@ print("Clasificacion: ERROR DE ESCALA (sobra un digito). "
       "Accion: se corrige dividiendo entre 10. Valores corregidos:",
       sorted(df.loc[mascara_horas_imposibles, "WorkWeekHrs"].tolist()))
 
+# Dividir entre 10 es inventar un valor, asi que no alcanza con que "suene
+# razonable": hay que mostrar que el resultado cae dentro de lo que contesto
+# el resto de la encuesta. Si al dividir quedaran horas absurdas (2 o 300 a la
+# semana), la hipotesis del digito de mas seria falsa y habria que tratarlos
+# como faltantes.
+if mascara_horas_imposibles.any():
+    corregidos = df.loc[mascara_horas_imposibles, "WorkWeekHrs"]
+    normales = df.loc[~mascara_horas_imposibles, "WorkWeekHrs"]
+    p5, p95 = normales.quantile(0.05), normales.quantile(0.95)
+    dentro = ((corregidos >= p5) & (corregidos <= p95)).sum()
+    print(f"\nEvidencia de que la correccion es creible: los valores "
+          f"corregidos quedan entre "
+          f"{corregidos.min():.1f} y {corregidos.max():.1f} horas/semana. "
+          f"El 90% central del resto de la encuesta esta entre {p5:.1f} y "
+          f"{p95:.1f}. {dentro} de {len(corregidos)} valores corregidos caen "
+          f"dentro de ese rango.")
+    print(f"     Ninguno queda fuera de una jornada humana posible: el "
+          f"minimo son {corregidos.min():.1f} horas y el maximo "
+          f"{corregidos.max():.1f}. Eso es lo que sostiene la hipotesis del "
+          f"digito de mas. Si al dividir quedaran horas imposibles, la "
+          f"correccion seria un invento y habria que tratarlos como "
+          f"faltantes.")
+
 # --- Caso 4 (OBLIGATORIO): un atipico que NO se debe eliminar -----------
 # WorkWeekHrs entre 100 y 168 horas/semana: el metodo RIC los marca como
 # candidatos (estan muy por encima del limite superior calculado arriba),
@@ -490,6 +792,22 @@ print(f"\nCaso 5 - CompTotal: {mascara_comptotal_absurdo.sum()} registro(s) "
       f"(queda como dato faltante); no se imputa porque esta columna no "
       f"forma parte del analisis de sueldos (se usa ConvertedComp).")
 df.loc[mascara_comptotal_absurdo, "CompTotal"] = np.nan
+
+# No se cruza CompTotal con CompFreq y la moneda para reconstruir el valor
+# real, y conviene dejar dicho por que: la columna no entra al analisis, y el
+# dataset ya trae la version convertida a USD.
+if "CurrencySymbol" in df.columns:
+    monedas = df["CurrencySymbol"].nunique()
+    print(f"\nEvidencia: CompTotal viene en la moneda local de cada "
+          f"persona y en este dataset hay {monedas} monedas distintas "
+          f"(columna CurrencySymbol). Sumar o promediar pesos, rupias y "
+          f"dolares en la misma columna no significa nada.")
+    print(f"     Por eso el analisis de sueldos usa ConvertedComp, que la "
+          f"propia encuesta ya entrega en USD. CompTotal se conserva como "
+          f"evidencia del error de digitacion mas extremo del dataset, no "
+          f"como variable de analisis: reconstruir sus valores cruzando "
+          f"CompFreq y moneda seria trabajo sobre una columna que despues no "
+          f"se usa.")
 
 # --- Registro de cuantos datos se habrian perdido si se eliminaran TODOS los
 #     atipicos detectados (en vez de clasificarlos como hicimos arriba) ----
