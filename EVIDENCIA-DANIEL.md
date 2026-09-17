@@ -85,7 +85,7 @@ de verdad?*
 
 ### El contraste
 
-| | ÷ 10 (sobra un dígito) | ÷ 4,3 (horas al mes) |
+| | ÷ 10 (coma decimal perdida) | ÷ 4,3 (horas al mes) |
 |---|---|---|
 | Rango resultante | 22,5 – 47,5 h/semana | 52,3 – 110,5 h/semana |
 | **Por encima de 60 h/semana** | **0 de 62** | **61 de 62** |
