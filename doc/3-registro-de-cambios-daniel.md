@@ -1,7 +1,9 @@
-# 3. Registro de cambios
+# 3. Registro de cambios — Daniel
 
-Qué se tocó del código que llegó del compañero, y por qué. Uso interno: **no va en la
-entrega**.
+Qué tocó Daniel del código que llegó del compañero, y por qué. Cubre su bloque de
+revisión (§5–§8, pendientes D1–D6), el bug J3 y la limpieza del repositorio.
+
+Uso interno: **no va en la entrega**. Tomás y Juan Diego llevan su propio registro.
 
 ## Script de limpieza
 
