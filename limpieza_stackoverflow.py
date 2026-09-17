@@ -1,5 +1,6 @@
 
 
+import hashlib
 import random
 import warnings
 import zipfile
@@ -93,6 +94,13 @@ linea("2. EXPLORACION INICIAL")
 n_filas, n_columnas = df.shape
 print(f"Filas: {n_filas}  |  Columnas: {n_columnas}")
 
+# .info() da en una sola llamada la estructura completa: filas, columnas,
+# tipo y cantidad de no-nulos de cada una. Es la vista que pide el enunciado.
+print("\nEstructura del dataset (.info()):")
+df.info()
+
+# El resumen por tipo va aparte porque con 61 columnas la lista de .info()
+# es larga y conviene ver de un vistazo cuantas son numericas y cuantas texto.
 print("\nTipos de dato por columna (resumen):")
 print(df.dtypes.value_counts())
 
@@ -1016,6 +1024,69 @@ print("Se agregaron las columnas 'coherencia_edad_codigo_ok' y "
 
 
 # ---------------------------------------------------------------------------
+# 9.1 RANGOS DE LAS VARIABLES NUMERICAS (maximos y minimos)
+# ---------------------------------------------------------------------------
+linea("9.1 RANGOS DE LAS VARIABLES NUMERICAS")
+
+# Las reglas de arriba cruzan columnas entre si. Esta revisa cada variable
+# numerica contra el rango en el que puede estar por definicion, y sirve como
+# control final: si despues de toda la limpieza queda un valor fuera de rango,
+# es que algo de lo que hicimos antes no funciono.
+#
+# Los limites no son arbitrarios: salen de la realidad que mide cada variable
+# o de las convenciones que el propio script ya aplico.
+RANGOS_ESPERADOS = {
+    # variable: (minimo, maximo, de donde sale el limite)
+    "Age": (10, 100, "menores de 10 y mayores de 100 se corrigieron en la seccion 8"),
+    "Age1stCode": (4, 86, "extremos del mapeo de la seccion 3: 'Younger than 5' y 'Older than 85'"),
+    "YearsCode": (0.5, 51, "extremos del mapeo de la seccion 3: 'Less than 1 year' y 'More than 50 years'"),
+    "YearsCodePro": (0.5, 51, "mismo mapeo que YearsCode"),
+    "WorkWeekHrs": (0, 168, "168 horas es el maximo fisico de una semana (24 x 7)"),
+    "ConvertedComp": (0, 2_000_000, "tope que trae la propia encuesta en esta variable"),
+}
+
+filas_rangos = []
+violaciones_totales = 0
+for variable, (minimo, maximo, origen) in RANGOS_ESPERADOS.items():
+    if variable not in df.columns:
+        continue
+    serie = df[variable]
+    fuera = ((serie < minimo) | (serie > maximo)).sum()
+    violaciones_totales += fuera
+    filas_rangos.append({
+        "variable": variable,
+        "min_esperado": minimo,
+        "max_esperado": maximo,
+        "min_observado": serie.min(),
+        "max_observado": serie.max(),
+        "fuera_de_rango": fuera,
+        "estado": "OK" if fuera == 0 else "REVISAR",
+    })
+
+tabla_rangos = pd.DataFrame(filas_rangos).set_index("variable")
+print(tabla_rangos.to_string())
+
+print("\nDe donde sale cada limite:")
+for variable, (_, _, origen) in RANGOS_ESPERADOS.items():
+    if variable in df.columns:
+        print(f"  {variable}: {origen}")
+
+if violaciones_totales == 0:
+    print("\nNinguna variable numerica quedo fuera de su rango posible. Es el "
+          "control final de la limpieza: confirma que las correcciones de la "
+          "seccion 8 efectivamente se aplicaron y que ninguna imputacion "
+          "metio un valor imposible.")
+else:
+    print(f"\nALERTA: {violaciones_totales} valor(es) quedaron fuera de rango "
+          f"despues de limpiar. Hay que revisar la seccion 8 antes de dar el "
+          f"dataset por bueno.")
+
+# CompTotal queda fuera de esta tabla a proposito: viene en la moneda local de
+# cada persona, asi que no existe un rango unico contra el cual medirla. Su
+# control es el de la seccion 8, donde se anulan los valores absurdos.
+
+
+# ---------------------------------------------------------------------------
 # 10. VARIABLES DERIVADAS (opcional)
 # ---------------------------------------------------------------------------
 linea("10. VARIABLES DERIVADAS (opcional)")
@@ -1051,5 +1122,43 @@ print(f"Dataset original:  data/{ARCHIVO_ZIP.name} -> {CSV_DENTRO_DEL_ZIP}  "
       f"({n_filas} filas, {n_columnas} columnas) - sin modificar")
 print(f"Dataset limpio:    {ARCHIVO_LIMPIO.relative_to(RAIZ)}  "
       f"({len(df)} filas, {df.shape[1]} columnas)")
+
+
+# ---------------------------------------------------------------------------
+# 11.1 VALIDACION PROGRAMATICA DE LA REPRODUCIBILIDAD
+# ---------------------------------------------------------------------------
+linea("11.1 VALIDACION PROGRAMATICA: HUELLA DEL ARCHIVO")
+
+# Fijar la semilla no alcanza como prueba: hay que poder DEMOSTRAR que dos
+# ejecuciones producen exactamente el mismo archivo. La huella SHA-256 del CSV
+# recien escrito es esa prueba, y cabe en una linea de consola.
+#
+# Como comprobarlo: correr el script dos veces seguidas y comparar las dos
+# huellas. Si coinciden caracter por caracter, el resultado es reproducible.
+# Si no coinciden, hay algo que depende del azar o del orden y la semilla no
+# lo esta cubriendo.
+def huella_sha256(ruta, tamano_bloque=1024 * 1024):
+    """Calcula el SHA-256 de un archivo leyendolo por bloques.
+
+    Se lee por bloques y no de una porque el CSV limpio pesa mas de 100 MB y
+    cargarlo entero en memoria solo para medirlo no tiene sentido."""
+    resumen = hashlib.sha256()
+    with open(ruta, "rb") as archivo:
+        for bloque in iter(lambda: archivo.read(tamano_bloque), b""):
+            resumen.update(bloque)
+    return resumen.hexdigest()
+
+
+huella = huella_sha256(ARCHIVO_LIMPIO)
+tamano_mb = ARCHIVO_LIMPIO.stat().st_size / (1024 * 1024)
+
+print(f"Semilla fijada:    {SEMILLA}")
+print(f"Tamano del archivo: {tamano_mb:,.1f} MB")
+print(f"Huella SHA-256:     {huella}")
+print("\nPara validar la reproducibilidad: correr este script una segunda vez "
+      "y comparar esta huella con la de la corrida anterior. Dos huellas "
+      "iguales significan que los dos archivos son identicos byte por byte.")
+print("Desde la terminal tambien se puede comprobar con:")
+print(f"  sha256sum {ARCHIVO_LIMPIO.relative_to(RAIZ)}")
 
 linea("FIN DEL SCRIPT")

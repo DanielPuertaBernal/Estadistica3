@@ -33,6 +33,21 @@ Se arregló excluyendo de `columnas_categoricas` todo lo que empiece con `_`. Co
 nueva: **prefijo `_` = andamiaje interno del script**, fuera de todo tratamiento y
 borrado antes de guardar.
 
+## Bloque de Tomás (§9–§11), cubierto para no bloquear la entrega
+
+Dos huecos contra el enunciado que el plan no tenía anotados, más una llamada que el
+punto 3 nombra literal.
+
+| Sección | Cambio | Motivo |
+|---|---|---|
+| §2 | Se llama a `df.info()` | El punto 3 lo nombra explícitamente. Se conserva el resumen por tipo al lado: con 61 columnas la lista de `.info()` es larga |
+| §9.1 | **Nueva.** Las 6 variables numéricas se comparan contra su rango posible, declarando de dónde sale cada límite | El punto 11 pide textual *"verificar valores máximos y mínimos para variables numéricas"*. §9 solo cruzaba columnas entre sí. **Resultado: las 6 en OK, 0 valores fuera de rango** — confirma que las correcciones de §8 se aplicaron y que ninguna imputación metió un valor imposible |
+| §11.1 | **Nueva.** Huella SHA-256 del CSV recién escrito, leída por bloques | El punto 12 pide que dos ejecuciones produzcan un dataset idéntico. Fijar la semilla no es prueba; la huella sí. **Verificado con dos corridas: `17196cd0…deaa31` las dos veces**, confirmado por fuera con `sha256sum` |
+
+`CompTotal` queda fuera de la tabla de rangos a propósito: viene en la moneda local de
+cada persona, así que no existe un rango único contra el cual medirla. Su control es el
+de §8, donde se anulan los valores absurdos.
+
 ## Dependencias
 
 `requirements.txt` pasó de **111 paquetes a 3**. El script solo importa `pandas`, `numpy` y

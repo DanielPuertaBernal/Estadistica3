@@ -85,15 +85,17 @@ sección.
 
 ## Pendientes
 
-**Estado al día de hoy:** Daniel terminó todo su código. Tomás y Juan Diego todavía no
-arrancaron. El código que llegó del compañero ya cubre buena parte de sus bloques, así
-que lo que les queda es **menos de lo que parece**: verificar, completar dos huecos y
-escribir.
+**Estado al día de hoy:** el código del parcial está **completo**. Daniel cerró su bloque
+y además cubrió los dos huecos del bloque de Tomás, para no dejar el trabajo bloqueado.
+Juan Diego ya cumplía con el código que llegó del compañero.
+
+**Lo único que falta son los 8 párrafos de justificación del informe**, que el parcial
+reserva expresamente al equipo.
 
 | | Código | Escritura |
 |---|---|---|
 | **Daniel** | ✅ completo | 5 párrafos del informe |
-| **Tomás** | 2 huecos reales (T4, T5) | 2 párrafos |
+| **Tomás** | ✅ completo | 2 párrafos |
 | **Juan Diego** | ✅ ya cumple; falta verificar un número | 3 párrafos |
 
 Tres tipos de pendiente, y conviene no mezclarlos:
@@ -118,18 +120,18 @@ Tres tipos de pendiente, y conviene no mezclarlos:
 
 **Le queda solo escribir** (ver *Lo que nadie puede delegar*, abajo): D5, D6, E1, E2, E3.
 
-### Tomás — §1–§3 y §9–§11 · sin arrancar
+### Tomás — §1–§3 y §9–§11 · código terminado (lo cubrió Daniel)
 
 | # | Tipo | Pendiente |
 |---|---|---|
 | T1 | ✅ | Carga desde `data/archive.zip`, rutas desde la raíz del repositorio |
 | T2 | **B** | Las reglas de coherencia comparan sin tolerancia. El enunciado no exige tolerancia, así que alcanza con justificar la decisión |
 | T3 | **B** | Ante una fila incoherente el script solo la **marca**, no corrige ni imputa. Defendible —no se sabe cuál de las dos columnas está mal— pero hay que decirlo así en el informe |
-| T4 | **C** | **Punto 12.** La semilla está fijada pero nadie comprobó que dos corridas den el mismo archivo. Correr dos veces y comparar el hash del CSV. Es de las cosas más rápidas de toda la lista |
-| T5 | **A** | **Punto 11, hueco real.** El enunciado pide textual *"verificar valores máximos y mínimos para variables numéricas"*. §9 solo tiene las dos reglas lógicas; falta el chequeo de rangos sobre el dataset ya limpio |
-| T6 | **C** | **Punto 3.** El enunciado nombra `.info()`; el script usa `dtypes.value_counts()` más el shape por separado. Cubre lo mismo, pero agregar la llamada literal cuesta una línea y cierra el punto sin discusión |
+| T4 | ✅ | ~~Nadie había comprobado que dos corridas den el mismo archivo.~~ **Resuelto.** §11.1 calcula la huella SHA-256 del CSV recién escrito. Verificado con dos corridas seguidas: `17196cd0…deaa31` las dos veces, confirmado también con `sha256sum` |
+| T5 | ✅ | ~~Faltaba el chequeo de máximos y mínimos del punto 11.~~ **Resuelto.** §9.1 compara las 6 variables numéricas contra su rango posible y dice de dónde sale cada límite. **Las 6 en OK, 0 valores fuera de rango** — es el control final de que las correcciones de §8 se aplicaron |
+| T6 | ✅ | ~~El script no llamaba a `.info()`.~~ **Resuelto.** §2 lo llama, y conserva el resumen por tipo porque con 61 columnas la lista de `.info()` es larga |
 
-### Juan Diego — §4–§4.5 · sin arrancar, pero el código ya cumple
+### Juan Diego — §4–§4.5 · el código ya cumple
 
 | # | Tipo | Pendiente |
 |---|---|---|
