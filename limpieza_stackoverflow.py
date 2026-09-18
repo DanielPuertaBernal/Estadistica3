@@ -43,8 +43,6 @@ CSV_DENTRO_DEL_ZIP = "survey_results_public.csv"
 CARPETA_SALIDAS = RAIZ / "salidas"
 ARCHIVO_LIMPIO = CARPETA_SALIDAS / "stackoverflow_limpio.csv"
 CARPETA_GRAFICAS = CARPETA_SALIDAS / "graficas"
-ARCHIVO_TABLA_SESGO = CARPETA_SALIDAS / "tabla_sesgo_imputacion.csv"
-ARCHIVO_FRECUENCIAS_MULTIPLE = CARPETA_SALIDAS / "frecuencias_respuesta_multiple.csv"
 
 CARPETA_GRAFICAS.mkdir(parents=True, exist_ok=True)
 
@@ -243,6 +241,13 @@ valores_antes_de_imputar = {col: df[col].copy() for col in VARIABLES_NUMERICAS}
 # acusar de error de digitacion a una fila cuya edad la pusimos nosotros.
 df["_age_era_real"] = df["Age"].notna()
 
+# Cuantos campos contesto realmente cada persona. Hay que medirlo AHORA, antes
+# de imputar: despues de las secciones 4.2 y 4.5 no queda casi ningun nulo
+# (los numericos llevan la mediana y los categoricos "Desconocido"), asi que
+# contar no-nulos mas adelante daria practicamente el mismo numero para todas
+# las filas y no serviria para comparar a nadie con nadie.
+df["_campos_respondidos"] = df.notna().sum(axis=1)
+
 for col in VARIABLES_NUMERICAS:
     valor_relleno = df[col].mean() if estrategia_por_variable[col] == "media" else df[col].median()
     df[col] = df[col].fillna(valor_relleno)
@@ -262,9 +267,10 @@ print(resumen_despues.round(2))
 
 tabla_comparativa = resumen_antes[["media", "mediana", "desviacion_std", "n_observaciones"]].add_suffix("_antes")
 tabla_comparativa = tabla_comparativa.join(resumen_despues.add_suffix("_despues"))
-tabla_comparativa.to_csv(ARCHIVO_TABLA_SESGO)
-print(f"\nTabla completa antes/despues guardada en "
-      f"{ARCHIVO_TABLA_SESGO.relative_to(RAIZ)}")
+# La tabla comparativa se imprime entera y no se exporta a un archivo: es
+# evidencia del informe, no un insumo que otro script vaya a leer.
+print("\nTabla comparativa completa (antes / despues de imputar):")
+print(tabla_comparativa.round(2).to_string())
 
 # --- 4.3 Histogramas antes/despues superpuestos ----------------------------
 for col in VARIABLES_NUMERICAS:
@@ -357,7 +363,7 @@ print(f"Filas duplicadas encontradas (segun la regla del protocolo): {es_duplica
 # significa nada. Conservar el registro MAS COMPLETO si tiene sentido, porque
 # entre dos respuestas identicas en lo que contestaron, la que tiene mas
 # campos llenos aporta mas informacion y nunca menos.
-completitud = df.notna().sum(axis=1)
+completitud = df["_campos_respondidos"]
 
 # Ordenamos por completitud descendente y marcamos duplicados sobre ese orden:
 # asi el "primero" de cada grupo pasa a ser el mas completo. `mergesort` es
@@ -387,10 +393,55 @@ if filas_que_cambian:
           f"completo: la diferencia es informacion que se habria perdido por "
           f"el orden del archivo, que no significa nada.")
 else:
-    print("     Aqui los dos criterios coinciden: los duplicados son "
-          "encuestas casi vacias con la misma cantidad de campos llenos, asi "
-          "que da igual cual se conserve. Aplicamos el mas completo porque es "
-          "el criterio defendible, no porque cambie el resultado.")
+    print("     Los dos criterios coinciden, y no por casualidad: el protocolo "
+          "define duplicado como coincidencia en TODAS las columnas salvo "
+          "Respondent, asi que dos filas duplicadas tienen por fuerza la misma "
+          "cantidad de campos respondidos. Con esta definicion el desempate "
+          "por completitud nunca puede cambiar nada. Se aplica igual porque "
+          "seria el criterio correcto si el protocolo admitiera duplicados "
+          "PARCIALES, donde las filas coinciden solo en algunas columnas y ahi "
+          "si una puede ser mas completa que otra.")
+
+# --- Un ejemplo concreto, que vale mas que el conteo --------------------
+grupos_duplicados = df[df.duplicated(subset=columnas_para_comparar, keep=False)]
+if len(grupos_duplicados):
+    campos_dup = completitud[grupos_duplicados.index].mean()
+    campos_resto = completitud[~df.index.isin(grupos_duplicados.index)].mean()
+    print(f"\nFilas involucradas en algun grupo de duplicados: "
+          f"{len(grupos_duplicados)}")
+    print(f"Campos realmente respondidos, promedio: "
+          f"{campos_dup:.1f} en los duplicados contra {campos_resto:.1f} en el "
+          f"resto (de {len(df.columns)} columnas).")
+
+    # Buscamos un par para mostrarlo entero
+    for _, par in grupos_duplicados.groupby(columnas_para_comparar,
+                                            dropna=False, sort=False):
+        if len(par) == 2:
+            # Una columna se muestra solo si la persona la contesto de
+            # verdad: ni el relleno "Desconocido" de la seccion 4.5, ni la
+            # mediana que la 4.2 puso en las numericas que venian vacias.
+            respondidas = []
+            for c in par.columns:
+                if c.startswith("_") or par[c].isna().any():
+                    continue
+                if (par[c].astype(str) == "Desconocido").any():
+                    continue
+                if c in valores_antes_de_imputar:
+                    if valores_antes_de_imputar[c].loc[par.index].isna().any():
+                        continue
+                respondidas.append(c)
+            print(f"\nEjemplo de un par duplicado (Respondent "
+                  f"{par['Respondent'].tolist()}):")
+            print(par[respondidas].to_string(index=False))
+            print("\nLos dos registros coinciden en todo menos en Respondent, "
+                  "que es lo que el protocolo define como duplicado. Pero "
+                  "fijarse en CUANTAS preguntas contestaron: son encuestas "
+                  "abandonadas a las pocas preguntas. Con tan pocas respuestas "
+                  "hay muy pocas combinaciones posibles, asi que dos personas "
+                  "distintas pueden coincidir sin ser la misma. Se eliminan "
+                  "igual, porque la regla estaba fijada de antemano, pero el "
+                  "matiz queda documentado.")
+            break
 
 filas_antes_de_dup = len(df)
 df = df[~es_duplicado_mas_completo].reset_index(drop=True)
@@ -581,6 +632,10 @@ linea("7.1 COLUMNAS DE RESPUESTA MULTIPLE")
 SEPARADOR_MULTIPLE = ";"
 UMBRAL_DETECCION_MULTIPLE = 0.02  # 2% de filas con separador ya delata la pregunta
 
+# Pregunta que se expande a columnas binarias mas abajo. Se declara aqui
+# porque el resumen de frecuencias tambien la usa como ejemplo.
+COLUMNA_PARA_BINARIAS = "LanguageWorkedWith"
+
 columnas_respuesta_multiple = []
 for col in columnas_categoricas:
     valores = df[col].astype(str)
@@ -639,16 +694,17 @@ for col in columnas_respuesta_multiple:
         })
 
 tabla_frecuencias = pd.DataFrame(filas_frecuencias)
-tabla_frecuencias.to_csv(ARCHIVO_FRECUENCIAS_MULTIPLE, index=False)
-print(f"\nTabla de frecuencias por opcion guardada en "
-      f"{ARCHIVO_FRECUENCIAS_MULTIPLE.relative_to(RAIZ)} "
-      f"({len(tabla_frecuencias)} opciones distintas en total).")
+print(f"\nSe separaron {len(tabla_frecuencias)} opciones distintas en total. "
+      f"Asi se ve la frecuencia REAL de cada una, que es lo que no se puede "
+      f"calcular sin separar la celda. Las 10 mas marcadas de "
+      f"{COLUMNA_PARA_BINARIAS}:")
+top = tabla_frecuencias[tabla_frecuencias["pregunta"] == COLUMNA_PARA_BINARIAS].head(10)
+print(top[["opcion", "n_encuestados", "pct_encuestados"]].to_string(index=False))
 
 # --- 7.1.c Columnas binarias para una pregunta -----------------------------
 # Expandir las 20 preguntas a binarias agregaria cientos de columnas al
 # dataset final. Lo hacemos para UNA, la mas usada en analisis de esta
 # encuesta, para dejar la tecnica demostrada y aplicable al resto.
-COLUMNA_PARA_BINARIAS = "LanguageWorkedWith"
 
 if COLUMNA_PARA_BINARIAS in columnas_respuesta_multiple:
     opciones_binarias = sorted(
@@ -831,20 +887,28 @@ print(f"\nCaso 2 - Age: {mascara_edad_contaminante.sum()} registro(s) con "
       f"Accion: se reemplazan por la mediana ({mediana_age:.0f} anios).")
 df.loc[mascara_edad_contaminante, "Age"] = mediana_age
 
-# --- Caso 3: WorkWeekHrs > 168 -> error de escala (sobra un digito) -----
+# --- Caso 3: WorkWeekHrs > 168 -> error de escala (separador decimal) ---
 # Una semana solo tiene 168 horas (24 x 7), asi que CUALQUIER valor por
-# encima de eso es fisicamente imposible. Al dividir estos valores entre 10
-# todos caen en un rango de horas de trabajo perfectamente creible
-# (22.5 a 47.5 horas/semana), lo que sugiere que a la persona se le fue un
-# digito de mas (o le sobra un cero). Clasificacion: ERROR DE ESCALA.
-# Accion: CORREGIR dividiendo entre 10 (no eliminar).
+# encima de eso es fisicamente imposible.
+#
+# El mecanismo del error no es un digito de mas: es una coma decimal perdida.
+# La evidencia que se imprime abajo lo sostiene. Estos registros se concentran
+# de forma brutal en Noruega, Finlandia y Austria, paises donde la jornada
+# estandar es de 37,5 horas y donde el decimal se escribe con COMA. El valor
+# que mas se repite es exactamente 375, que es "37,5" al que el formulario le
+# comio el separador. Y no son freelancers ni gente con sueldos raros: son
+# empleados de sueldo mediano normal.
+#
+# Clasificacion: ERROR DE UNIDAD O ESCALA.
+# Accion: CORREGIR dividiendo entre 10. Eso no inventa un valor: reconstruye
+# el separador que se perdio al capturar la respuesta.
 mascara_horas_imposibles = df["WorkWeekHrs"] > 168
 valores_antes_correccion = df.loc[mascara_horas_imposibles, "WorkWeekHrs"].tolist()
 print(f"\nCaso 3 - WorkWeekHrs: {mascara_horas_imposibles.sum()} registro(s) "
       f"por encima de 168 horas/semana (fisicamente imposible). "
       f"Valores originales: {sorted(valores_antes_correccion)}")
 df.loc[mascara_horas_imposibles, "WorkWeekHrs"] = df.loc[mascara_horas_imposibles, "WorkWeekHrs"] / 10
-print("Clasificacion: ERROR DE ESCALA (sobra un digito). "
+print("Clasificacion: ERROR DE UNIDAD O ESCALA (coma decimal perdida). "
       "Accion: se corrige dividiendo entre 10. Valores corregidos:",
       sorted(df.loc[mascara_horas_imposibles, "WorkWeekHrs"].tolist()))
 
@@ -866,10 +930,10 @@ if mascara_horas_imposibles.any():
           f"dentro de ese rango.")
     print(f"     Ninguno queda fuera de una jornada humana posible: el "
           f"minimo son {corregidos.min():.1f} horas y el maximo "
-          f"{corregidos.max():.1f}. Eso es lo que sostiene la hipotesis del "
-          f"digito de mas. Si al dividir quedaran horas imposibles, la "
-          f"correccion seria un invento y habria que tratarlos como "
-          f"faltantes.")
+          f"{corregidos.max():.1f}. Dividir entre 10 podria haber dado "
+          f"jornadas absurdas y no las dio: esa es la prueba. Si al dividir "
+          f"quedaran horas imposibles, la correccion seria un invento y "
+          f"habria que tratarlos como faltantes.")
 
 # Grafica de apoyo para el caso 3. La hipotesis del digito de mas compite con
 # otra igual de razonable a primera vista: que la persona haya respondido horas
@@ -887,7 +951,7 @@ if mascara_horas_imposibles.any():
             label=f"Respuestas validas de la encuesta (n={len(horas_reales):,})")
     tope = ax.get_ylim()[1]
     ax.vlines(bajo_hipotesis_digito, 0, tope * 0.55, color="tab:green", linewidth=1.5,
-              label="Los 62 valores / 10  (hipotesis: sobra un digito)")
+              label="Los 62 valores / 10  (hipotesis: coma decimal perdida)")
     ax.vlines(bajo_hipotesis_mes, 0, tope * 0.55, color="tab:red", linewidth=1.5,
               linestyle="--", label="Los 62 valores / 4.3  (hipotesis: son horas al mes)")
     ax.set_xlim(0, 120)
@@ -902,18 +966,46 @@ if mascara_horas_imposibles.any():
 
     fuera_digito = (bajo_hipotesis_digito > 60).sum()
     fuera_mes = (bajo_hipotesis_mes > 60).sum()
-    print(f"\n     Comparacion de las dos hipotesis, contando cuantos quedan "
-          f"por encima de 60 h/semana:")
-    print(f"       dividir entre 10  (sobra un digito): {fuera_digito} de "
+    print(f"\n     Evidencia 1 - comparacion de las dos hipotesis, contando "
+          f"cuantos quedan por encima de 60 h/semana:")
+    print(f"       dividir entre 10  (coma decimal perdida): {fuera_digito} de "
           f"{len(bajo_hipotesis_digito)}")
-    print(f"       dividir entre 4.3 (horas al mes):    {fuera_mes} de "
+    print(f"       dividir entre 4.3 (horas al mes):         {fuera_mes} de "
           f"{len(bajo_hipotesis_mes)}")
     repetido = pd.Series(valores_antes_correccion).value_counts().idxmax()
     n_repetido = pd.Series(valores_antes_correccion).value_counts().max()
     print(f"       El valor mas repetido es {repetido:.0f} "
           f"({n_repetido} de {len(valores_antes_correccion)} casos), que "
           f"entre 10 da {repetido/10:.1f} h/semana.")
-    print(f"     Grafica: {ruta_figura_caso3.relative_to(RAIZ)}")
+
+    # De donde son estas personas. Si el error fuera azar de tipeo, los paises
+    # se repartirian como en el resto de la encuesta. No se reparten asi.
+    paises_62 = (df.loc[mascara_horas_imposibles, "Country"]
+                 .value_counts(normalize=True) * 100)
+    paises_todos = df["Country"].value_counts(normalize=True) * 100
+    comparacion_62 = pd.DataFrame({
+        "pct_entre_los_62": paises_62.head(5).round(1),
+        "pct_en_el_dataset": paises_todos.reindex(paises_62.head(5).index).round(1),
+    })
+    print("\n     Evidencia 2 - de donde son. Si fuera azar de tipeo, estos "
+          "porcentajes serian parecidos:")
+    print(comparacion_62.to_string())
+    print("       Noruega y Finlandia tienen jornada estandar de 37,5 horas y "
+          "escriben el decimal con coma. El 375 es '37,5' sin el separador.")
+
+    # Y no son consultores ni freelancers, que seria la explicacion alternativa
+    # mas creible para una jornada declarada fuera de lo normal.
+    if "Employment" in df.columns:
+        def pct_independiente(sub):
+            texto = sub["Employment"].astype(str).str.lower()
+            return texto.str.contains("freelanc|self-employed", regex=True).mean() * 100
+        ind_62 = pct_independiente(df[mascara_horas_imposibles])
+        ind_resto = pct_independiente(df[~mascara_horas_imposibles])
+        print(f"\n     Evidencia 3 - independientes: {ind_62:.1f}% entre los 62 "
+              f"contra {ind_resto:.1f}% en el resto. No son consultores "
+              f"facturando por hora: son empleados.")
+
+    print(f"\n     Grafica: {ruta_figura_caso3.relative_to(RAIZ)}")
 
 
 # --- Caso 4 (OBLIGATORIO): un atipico que NO se debe eliminar -----------
@@ -1201,9 +1293,9 @@ print("Se creo 'grupo_edad' agrupando Age en rangos (<=20, 21-30, 31-40, 41-50, 
 # ---------------------------------------------------------------------------
 linea("11. GUARDAR DATASET LIMPIO")
 
-# La marca auxiliar de la seccion 4 era andamiaje interno: no forma parte del
-# dataset limpio.
-df = df.drop(columns=["_age_era_real"])
+# Las marcas auxiliares de la seccion 4 son andamiaje interno: no forman parte
+# del dataset limpio.
+df = df.drop(columns=[c for c in df.columns if c.startswith("_")])
 
 df.to_csv(ARCHIVO_LIMPIO, index=False)
 print(f"Dataset original:  data/{ARCHIVO_ZIP.name} -> {CSV_DENTRO_DEL_ZIP}  "
