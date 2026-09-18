@@ -243,6 +243,13 @@ valores_antes_de_imputar = {col: df[col].copy() for col in VARIABLES_NUMERICAS}
 # acusar de error de digitacion a una fila cuya edad la pusimos nosotros.
 df["_age_era_real"] = df["Age"].notna()
 
+# Cuantos campos contesto realmente cada persona. Hay que medirlo AHORA, antes
+# de imputar: despues de las secciones 4.2 y 4.5 no queda casi ningun nulo
+# (los numericos llevan la mediana y los categoricos "Desconocido"), asi que
+# contar no-nulos mas adelante daria practicamente el mismo numero para todas
+# las filas y no serviria para comparar a nadie con nadie.
+df["_campos_respondidos"] = df.notna().sum(axis=1)
+
 for col in VARIABLES_NUMERICAS:
     valor_relleno = df[col].mean() if estrategia_por_variable[col] == "media" else df[col].median()
     df[col] = df[col].fillna(valor_relleno)
@@ -357,7 +364,7 @@ print(f"Filas duplicadas encontradas (segun la regla del protocolo): {es_duplica
 # significa nada. Conservar el registro MAS COMPLETO si tiene sentido, porque
 # entre dos respuestas identicas en lo que contestaron, la que tiene mas
 # campos llenos aporta mas informacion y nunca menos.
-completitud = df.notna().sum(axis=1)
+completitud = df["_campos_respondidos"]
 
 # Ordenamos por completitud descendente y marcamos duplicados sobre ese orden:
 # asi el "primero" de cada grupo pasa a ser el mas completo. `mergesort` es
@@ -387,10 +394,55 @@ if filas_que_cambian:
           f"completo: la diferencia es informacion que se habria perdido por "
           f"el orden del archivo, que no significa nada.")
 else:
-    print("     Aqui los dos criterios coinciden: los duplicados son "
-          "encuestas casi vacias con la misma cantidad de campos llenos, asi "
-          "que da igual cual se conserve. Aplicamos el mas completo porque es "
-          "el criterio defendible, no porque cambie el resultado.")
+    print("     Los dos criterios coinciden, y no por casualidad: el protocolo "
+          "define duplicado como coincidencia en TODAS las columnas salvo "
+          "Respondent, asi que dos filas duplicadas tienen por fuerza la misma "
+          "cantidad de campos respondidos. Con esta definicion el desempate "
+          "por completitud nunca puede cambiar nada. Se aplica igual porque "
+          "seria el criterio correcto si el protocolo admitiera duplicados "
+          "PARCIALES, donde las filas coinciden solo en algunas columnas y ahi "
+          "si una puede ser mas completa que otra.")
+
+# --- Un ejemplo concreto, que vale mas que el conteo --------------------
+grupos_duplicados = df[df.duplicated(subset=columnas_para_comparar, keep=False)]
+if len(grupos_duplicados):
+    campos_dup = completitud[grupos_duplicados.index].mean()
+    campos_resto = completitud[~df.index.isin(grupos_duplicados.index)].mean()
+    print(f"\nFilas involucradas en algun grupo de duplicados: "
+          f"{len(grupos_duplicados)}")
+    print(f"Campos realmente respondidos, promedio: "
+          f"{campos_dup:.1f} en los duplicados contra {campos_resto:.1f} en el "
+          f"resto (de {len(df.columns)} columnas).")
+
+    # Buscamos un par para mostrarlo entero
+    for _, par in grupos_duplicados.groupby(columnas_para_comparar,
+                                            dropna=False, sort=False):
+        if len(par) == 2:
+            # Una columna se muestra solo si la persona la contesto de
+            # verdad: ni el relleno "Desconocido" de la seccion 4.5, ni la
+            # mediana que la 4.2 puso en las numericas que venian vacias.
+            respondidas = []
+            for c in par.columns:
+                if c.startswith("_") or par[c].isna().any():
+                    continue
+                if (par[c].astype(str) == "Desconocido").any():
+                    continue
+                if c in valores_antes_de_imputar:
+                    if valores_antes_de_imputar[c].loc[par.index].isna().any():
+                        continue
+                respondidas.append(c)
+            print(f"\nEjemplo de un par duplicado (Respondent "
+                  f"{par['Respondent'].tolist()}):")
+            print(par[respondidas].to_string(index=False))
+            print("\nLos dos registros coinciden en todo menos en Respondent, "
+                  "que es lo que el protocolo define como duplicado. Pero "
+                  "fijarse en CUANTAS preguntas contestaron: son encuestas "
+                  "abandonadas a las pocas preguntas. Con tan pocas respuestas "
+                  "hay muy pocas combinaciones posibles, asi que dos personas "
+                  "distintas pueden coincidir sin ser la misma. Se eliminan "
+                  "igual, porque la regla estaba fijada de antemano, pero el "
+                  "matiz queda documentado.")
+            break
 
 filas_antes_de_dup = len(df)
 df = df[~es_duplicado_mas_completo].reset_index(drop=True)
@@ -1237,9 +1289,9 @@ print("Se creo 'grupo_edad' agrupando Age en rangos (<=20, 21-30, 31-40, 41-50, 
 # ---------------------------------------------------------------------------
 linea("11. GUARDAR DATASET LIMPIO")
 
-# La marca auxiliar de la seccion 4 era andamiaje interno: no forma parte del
-# dataset limpio.
-df = df.drop(columns=["_age_era_real"])
+# Las marcas auxiliares de la seccion 4 son andamiaje interno: no forman parte
+# del dataset limpio.
+df = df.drop(columns=[c for c in df.columns if c.startswith("_")])
 
 df.to_csv(ARCHIVO_LIMPIO, index=False)
 print(f"Dataset original:  data/{ARCHIVO_ZIP.name} -> {CSV_DENTRO_DEL_ZIP}  "
