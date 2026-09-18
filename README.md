@@ -19,8 +19,7 @@ data/                         SOLO el dataset original
   archive.zip                 Descarga de Kaggle, comprimida — se versiona
 salidas/                      Todo lo que produce el script — NO se versiona
   stackoverflow_limpio.csv    Dataset limpio
-  tabla_sesgo_imputacion.csv  Estadísticos antes/después de imputar
-  graficas/                   Histogramas antes/después por variable
+  graficas/                   Histogramas y gráfica de atípicos
 doc/                          Enunciado, protocolo y plan de revisión
 ```
 
@@ -57,8 +56,10 @@ El script lee `data/archive.zip` directamente (no hace falta descomprimirlo) y e
 | Salida | Contenido |
 |---|---|
 | `salidas/stackoverflow_limpio.csv` | Dataset limpio |
-| `salidas/tabla_sesgo_imputacion.csv` | Estadísticos antes/después de imputar |
-| `salidas/graficas/` | Histogramas antes/después por variable |
+| `salidas/graficas/` | Histogramas antes/después y gráfica de atípicos |
+
+Las tablas (sesgo por imputación y frecuencias de respuesta múltiple) se imprimen en
+consola, no se exportan: son evidencia del informe, no insumo de otro script.
 
 Las rutas se resuelven desde la raíz del repositorio, así que da igual desde qué
 carpeta se ejecute.

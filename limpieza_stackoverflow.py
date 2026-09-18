@@ -43,8 +43,6 @@ CSV_DENTRO_DEL_ZIP = "survey_results_public.csv"
 CARPETA_SALIDAS = RAIZ / "salidas"
 ARCHIVO_LIMPIO = CARPETA_SALIDAS / "stackoverflow_limpio.csv"
 CARPETA_GRAFICAS = CARPETA_SALIDAS / "graficas"
-ARCHIVO_TABLA_SESGO = CARPETA_SALIDAS / "tabla_sesgo_imputacion.csv"
-ARCHIVO_FRECUENCIAS_MULTIPLE = CARPETA_SALIDAS / "frecuencias_respuesta_multiple.csv"
 
 CARPETA_GRAFICAS.mkdir(parents=True, exist_ok=True)
 
@@ -269,9 +267,10 @@ print(resumen_despues.round(2))
 
 tabla_comparativa = resumen_antes[["media", "mediana", "desviacion_std", "n_observaciones"]].add_suffix("_antes")
 tabla_comparativa = tabla_comparativa.join(resumen_despues.add_suffix("_despues"))
-tabla_comparativa.to_csv(ARCHIVO_TABLA_SESGO)
-print(f"\nTabla completa antes/despues guardada en "
-      f"{ARCHIVO_TABLA_SESGO.relative_to(RAIZ)}")
+# La tabla comparativa se imprime entera y no se exporta a un archivo: es
+# evidencia del informe, no un insumo que otro script vaya a leer.
+print("\nTabla comparativa completa (antes / despues de imputar):")
+print(tabla_comparativa.round(2).to_string())
 
 # --- 4.3 Histogramas antes/despues superpuestos ----------------------------
 for col in VARIABLES_NUMERICAS:
@@ -633,6 +632,10 @@ linea("7.1 COLUMNAS DE RESPUESTA MULTIPLE")
 SEPARADOR_MULTIPLE = ";"
 UMBRAL_DETECCION_MULTIPLE = 0.02  # 2% de filas con separador ya delata la pregunta
 
+# Pregunta que se expande a columnas binarias mas abajo. Se declara aqui
+# porque el resumen de frecuencias tambien la usa como ejemplo.
+COLUMNA_PARA_BINARIAS = "LanguageWorkedWith"
+
 columnas_respuesta_multiple = []
 for col in columnas_categoricas:
     valores = df[col].astype(str)
@@ -691,16 +694,17 @@ for col in columnas_respuesta_multiple:
         })
 
 tabla_frecuencias = pd.DataFrame(filas_frecuencias)
-tabla_frecuencias.to_csv(ARCHIVO_FRECUENCIAS_MULTIPLE, index=False)
-print(f"\nTabla de frecuencias por opcion guardada en "
-      f"{ARCHIVO_FRECUENCIAS_MULTIPLE.relative_to(RAIZ)} "
-      f"({len(tabla_frecuencias)} opciones distintas en total).")
+print(f"\nSe separaron {len(tabla_frecuencias)} opciones distintas en total. "
+      f"Asi se ve la frecuencia REAL de cada una, que es lo que no se puede "
+      f"calcular sin separar la celda. Las 10 mas marcadas de "
+      f"{COLUMNA_PARA_BINARIAS}:")
+top = tabla_frecuencias[tabla_frecuencias["pregunta"] == COLUMNA_PARA_BINARIAS].head(10)
+print(top[["opcion", "n_encuestados", "pct_encuestados"]].to_string(index=False))
 
 # --- 7.1.c Columnas binarias para una pregunta -----------------------------
 # Expandir las 20 preguntas a binarias agregaria cientos de columnas al
 # dataset final. Lo hacemos para UNA, la mas usada en analisis de esta
 # encuesta, para dejar la tecnica demostrada y aplicable al resto.
-COLUMNA_PARA_BINARIAS = "LanguageWorkedWith"
 
 if COLUMNA_PARA_BINARIAS in columnas_respuesta_multiple:
     opciones_binarias = sorted(
