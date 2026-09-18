@@ -20,7 +20,6 @@ data/                         SOLO el dataset original
 salidas/                      Todo lo que produce el script — NO se versiona
   stackoverflow_limpio.csv    Dataset limpio
   graficas/                   Histogramas y gráfica de atípicos
-doc/                          Enunciado, protocolo y plan de revisión
 ```
 
 **El dataset original ya está en el repositorio**, en `data/archive.zip`. No hay que
@@ -63,13 +62,3 @@ consola, no se exportan: son evidencia del informe, no insumo de otro script.
 
 Las rutas se resuelven desde la raíz del repositorio, así que da igual desde qué
 carpeta se ejecute.
-
-## Documentos
-
-| Archivo | Contenido |
-|---|---|
-| `doc/1-protocolo-previo-de-limpieza.md` | Protocolo entregado al docente — transcripción literal |
-| `doc/2-plan-de-ejecucion.md` | Reparto de revisión y pendientes — uso interno, no va en la entrega |
-| `doc/Parcial - Estadística III.pdf` | Enunciado |
-| `REPARTO-DEL-INFORME.md` | Quién escribe cada párrafo del informe — uso interno |
-| `EVIDENCIA-DANIEL.md` | Datos y figuras para los párrafos de Daniel — uso interno |
