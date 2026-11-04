@@ -62,3 +62,43 @@ consola, no se exportan: son evidencia del informe, no insumo de otro script.
 
 Las rutas se resuelven desde la raíz del repositorio, así que da igual desde qué
 carpeta se ejecute.
+
+## Red neuronal: calculadora de salarios
+
+`red_neuronal_salarios.ipynb` entrena una red neuronal que predice el salario anual a
+partir del lenguaje, los años de experiencia profesional y el país (ver
+`PROPUESTA-RED-NEURONAL.md`). Necesita el dataset limpio, así que primero hay que
+correr la limpieza.
+
+```bash
+.venv/bin/jupyter nbconvert --to notebook --execute --inplace red_neuronal_salarios.ipynb
+```
+
+Entrena solo con los salarios que la persona reportó de verdad (columna
+`ConvertedComp_reportado` del dataset limpio) y escribe en `salidas/`:
+
+| Salida | Contenido |
+|---|---|
+| `salidas/modelo_salarios.keras` | Red entrenada |
+| `salidas/preprocesador_salarios.joblib` | Codificación de las entradas, ajustada con el entrenamiento |
+| `salidas/calculadora_opciones.json` | Lenguajes, países, métricas de prueba y σ de los residuos |
+| `salidas/salarios_referencia.csv` | Salarios reales de entrenamiento, para comparar cada estimación |
+
+La semilla es fija y TensorFlow corre en modo determinista: dos corridas dan las
+mismas métricas.
+
+### Calculadora
+
+Con el modelo ya entrenado (el notebook lo deja en `salidas/`):
+
+```bash
+.venv/bin/streamlit run calculadora_salarios.py
+```
+
+Se elige un lenguaje, los años de experiencia profesional y un país, y devuelve el
+salario anual estimado en USD. Tiene dos pestañas:
+
+- **Calculadora:** la estimación, el rango del 68 % y una campana normal del error de
+  la red, dibujada sobre los salarios reales de personas con ese mismo perfil.
+- **¿Cómo lo calcula la red?:** las tres capas (44 entradas → 32 neuronas ReLU → 1
+  salida) con las neuronas que se encienden y el recorrido del dato hasta el salario.
