@@ -241,6 +241,13 @@ valores_antes_de_imputar = {col: df[col].copy() for col in VARIABLES_NUMERICAS}
 # acusar de error de digitacion a una fila cuya edad la pusimos nosotros.
 df["_age_era_real"] = df["Age"].notna()
 
+# Misma idea para el sueldo: casi la mitad de las filas reciben la mediana de
+# ConvertedComp, y despues de imputar ya no hay forma segura de distinguirlas
+# (filtrar por == mediana tambien quitaria a quien reporto ese valor exacto).
+# La red neuronal necesita entrenar solo con sueldos reales, asi que esta marca
+# se publica en la seccion 11 como ConvertedComp_reportado.
+df["_comp_era_real"] = df["ConvertedComp"].notna()
+
 # Cuantos campos contesto realmente cada persona. Hay que medirlo AHORA, antes
 # de imputar: despues de las secciones 4.2 y 4.5 no queda casi ningun nulo
 # (los numericos llevan la mediana y los categoricos "Desconocido"), asi que
@@ -1292,6 +1299,10 @@ print("Se creo 'grupo_edad' agrupando Age en rangos (<=20, 21-30, 31-40, 41-50, 
 # 11. GUARDAR DATASET LIMPIO (nunca se sobrescribe el original)
 # ---------------------------------------------------------------------------
 linea("11. GUARDAR DATASET LIMPIO")
+
+# La marca del sueldo si se publica: la red neuronal la usa para quedarse solo
+# con los sueldos que la persona reporto de verdad (ver seccion 4).
+df["ConvertedComp_reportado"] = df["_comp_era_real"]
 
 # Las marcas auxiliares de la seccion 4 son andamiaje interno: no forman parte
 # del dataset limpio.
