@@ -175,11 +175,12 @@ def grafica_red(x, recorrido, nombres_entrada):
     eje.annotate(f"log(salario) = {recorrido['log_salario']:.2f}\n→ {np.exp(recorrido['log_salario']):,.0f} USD",
                  (x_capas[-1], 0.5), xytext=(14, 0), textcoords="offset points", va="center", fontsize=10)
 
+    # Títulos cortos: con 5 capas ocultas las columnas quedan a menos de una pulgada.
     titulos = ([f"Entrada\n{len(activos)} de {len(x)} ≠ 0"]
-               + [f"Oculta {k + 1} (ReLU)\n{len(c['activacion'])} neuronas" for k, c in enumerate(ocultas)]
-               + ["Salida\n1 neurona"])
+               + [f"Oculta {k + 1}\n{len(c['activacion'])} ReLU" for k, c in enumerate(ocultas)]
+               + ["Salida\n1 lineal"])
     for xc, titulo in zip(x_capas, titulos):
-        eje.text(xc, 1.03, titulo, ha="center", va="bottom", fontsize=10, fontweight="bold")
+        eje.text(xc, 1.03, titulo, ha="center", va="bottom", fontsize=9, fontweight="bold")
     eje.set_xlim(-2.6, x_capas[-1] + 1.4)
     eje.set_ylim(-0.03, 1.13)
     eje.axis("off")
