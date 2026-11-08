@@ -63,42 +63,47 @@ consola, no se exportan: son evidencia del informe, no insumo de otro script.
 Las rutas se resuelven desde la raíz del repositorio, así que da igual desde qué
 carpeta se ejecute.
 
-## Red neuronal: calculadora de salarios
+## Red neuronal: 5 redes, una por país
 
-`red_neuronal_salarios.ipynb` entrena una red neuronal que predice el salario anual a
-partir del lenguaje, los años de experiencia profesional y el país (ver
-`PROPUESTA-RED-NEURONAL.md`). Necesita el dataset limpio, así que primero hay que
-correr la limpieza.
+`red_neuronal_salarios.ipynb` entrena **una red neuronal por país** para explicar las
+diferencias de salario entre programadores del mismo país, y compara los resultados de
+los 5 países (ver `PROPUESTA-RED-NEURONAL.md`). Los países se eligen solos: los 5 con
+más salarios válidos después de quitar los atípicos (hoy Estados Unidos, India, Reino
+Unido, Alemania y Canadá). Necesita el dataset limpio, así que primero hay que correr la
+limpieza.
 
 ```bash
-.venv/bin/jupyter nbconvert --to notebook --execute --inplace red_neuronal_salarios.ipynb
+.venv/bin/jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=5400 red_neuronal_salarios.ipynb
 ```
 
-Entrena solo con los salarios que la persona reportó de verdad (columna
-`ConvertedComp_reportado` del dataset limpio) y escribe en `salidas/`:
+La corrida completa tarda unos 60 minutos en CPU: la comparación de arquitecturas entrena
+150 redes (6 arquitecturas × 5 países × 5 pliegues). Escribe en `salidas/`:
 
 | Salida | Contenido |
 |---|---|
-| `salidas/modelo_salarios.keras` | Red entrenada |
-| `salidas/preprocesador_salarios.joblib` | Codificación de las entradas, ajustada con el entrenamiento |
-| `salidas/calculadora_opciones.json` | Lenguajes, países, métricas de prueba y σ de los residuos |
-| `salidas/salarios_referencia.csv` | Salarios reales de entrenamiento, para comparar cada estimación |
+| `salidas/modelos/<país>.keras` | Red entrenada de cada país |
+| `salidas/modelos/<país>_preprocesador.joblib` | Codificación de las entradas, ajustada con el entrenamiento de ese país |
+| `salidas/calculadora_opciones.json` | Variables elegidas, opciones de cada pregunta por país, métricas, σ de los residuos e importancia de cada variable |
+| `salidas/salarios_referencia.csv` | Salarios reales de los 5 países, para comparar cada estimación |
 
 La semilla es fija y TensorFlow corre en modo determinista: dos corridas dan las
 mismas métricas.
 
 ### Calculadora
 
-Con el modelo ya entrenado (el notebook lo deja en `salidas/`):
+Con las redes ya entrenadas (el notebook las deja en `salidas/`):
 
 ```bash
 .venv/bin/streamlit run calculadora_salarios.py
 ```
 
-Se elige un lenguaje, los años de experiencia profesional y un país, y devuelve el
-salario anual estimado en USD. Tiene dos pestañas:
+Se elige el país y se responde el perfil (lenguajes, experiencia, tipo de desarrollador,
+plataformas, tamaño de la empresa, estudios…); la red de ese país devuelve el salario
+anual estimado en USD. Tiene tres pestañas:
 
 - **Calculadora:** la estimación, el rango del 68 % y una campana normal del error de
-  la red, dibujada sobre los salarios reales de personas con ese mismo perfil.
-- **¿Cómo lo calcula la red?:** las tres capas (44 entradas → 32 neuronas ReLU → 1
+  la red, dibujada sobre los salarios reales de personas con un perfil parecido.
+- **El mismo perfil en los 5 países:** las mismas respuestas evaluadas por la red de
+  cada país, y qué variable pesa más en cada uno.
+- **¿Cómo lo calcula la red?:** las capas de la red (entrada → 5 capas ocultas ReLU →
   salida) con las neuronas que se encienden y el recorrido del dato hasta el salario.
