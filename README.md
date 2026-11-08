@@ -20,6 +20,7 @@ data/                         SOLO el dataset original
 salidas/                      Todo lo que produce el script — NO se versiona
   stackoverflow_limpio.csv    Dataset limpio
   graficas/                   Histogramas y gráfica de atípicos
+sustentacion/                 Diapositivas de la sustentación de la red (.pptx y .pdf)
 ```
 
 **El dataset original ya está en el repositorio**, en `data/archive.zip`. No hay que
