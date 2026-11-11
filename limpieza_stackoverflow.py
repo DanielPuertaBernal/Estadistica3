@@ -523,7 +523,7 @@ columnas_con_caracteres_raros = {}
 # Caracteres que no deberian aparecer nunca dentro de una respuesta: tabulador,
 # salto de linea, retorno de carro y demas caracteres de control, mas el
 # simbolo de reemplazo que deja un error de codificacion.
-CARACTERES_DE_CONTROL = r"[\x00-\x1f\x7f\ufffd]"
+CARACTERES_DE_CONTROL = "[\x00-\x1f\x7f\ufffd]"  # literal chars: pyarrow regex rejects \u escapes
 
 for col in columnas_categoricas:
     valores = df[col].astype(str)
