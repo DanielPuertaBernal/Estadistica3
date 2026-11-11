@@ -21,6 +21,7 @@ salidas/                      Todo lo que produce el script — NO se versiona
   stackoverflow_limpio.csv    Dataset limpio
   graficas/                   Histogramas y gráfica de atípicos
 sustentacion/                 Diapositivas de la sustentación de la red (.pptx y .pdf)
+entregables/                  Póster e informe final (.pptx/.docx y .pdf) y la plantilla del póster
 ```
 
 **El dataset original ya está en el repositorio**, en `data/archive.zip`. No hay que
