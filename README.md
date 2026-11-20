@@ -2,6 +2,10 @@
 
 Repositorio que contiene todo el contenido trabajado para el curso de Estadística III.
 
+## Taller EDA
+
+La carpeta `Taller EDA/` contiene el taller de estadística descriptiva y análisis exploratorio de datos (EDA). Antes vivía en el repositorio `estadisticaTrabajos` y se integró aquí con su historial.
+
 ## Dataset
 
 **Stack Overflow Developer Survey Dataset** (Palvinder, licencia MIT)
